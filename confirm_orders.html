@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>ยืนยันรายละเอียด - ระบบจัดการงานส่งสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body data-page="confirm_orders">
+  <aside class="sidebar">
+    <h2>Sophon Driver</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="line_orders.html">รับออเดอร์ Line</a>
+    <a href="confirm_orders.html" class="active">ยืนยันรายละเอียด</a>
+    <a href="orders.html">คำสั่งซื้อ</a>
+    <a href="planning.html">วางแผนจัดส่ง</a>
+    <a href="driver.html">หน้าคนขับ</a>
+    <a href="reports.html">รายงานผลงาน</a>
+    <a href="users.html">ผู้ใช้และสิทธิ์</a>
+  </aside>
+  <main class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>ยืนยันรายละเอียดคำสั่งซื้อ</h1>
+        <p>ค้นหา PO ที่รับมาจาก Line ส่งรายละเอียดให้ลูกค้ายืนยัน แล้วคีย์ข้อมูลจริงทั้งหมดเข้าระบบก่อนเข้าสู่การจัดส่ง</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ขั้นตอนที่พนักงานต้องทำ</h2>
+      <div class="workflow-steps">
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">PO</div>
+          <div>
+            <h3>ค้นหา PO</h3>
+            <p>ดึงข้อมูลเดิมขึ้นมา</p>
+            <div class="workflow-mini">เริ่มจากเลข PO</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">CALL</div>
+          <div>
+            <h3>ยืนยันลูกค้า</h3>
+            <p>ชื่อ + โทร + ที่อยู่</p>
+            <div class="workflow-mini">แผนที่ต้องครบ</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">MAP</div>
+          <div>
+            <h3>คีย์จริง</h3>
+            <p>กรอกแผนที่และข้อมูลส่ง</p>
+            <div class="workflow-mini">ระบบคำนวณเขตให้</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">PLAN</div>
+          <div>
+            <h3>ส่งต่อแผน</h3>
+            <p>สร้าง order แล้วไปจัดส่ง</p>
+            <div class="workflow-note">ถัดไป -> วางแผนจัดส่ง</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main-grid">
+      <div class="left-stack">
+        <div class="card">
+          <h2>ค้นหา PO</h2>
+          <form id="poLookupForm" class="form-grid-single">
+            <label>PO Number<input name="poNumber" id="poLookupInput" required></label>
+            <button type="submit" class="btn btn-primary">ดึงข้อมูล PO</button>
+          </form>
+          <div id="poLookupResult" class="mt-14"></div>
+        </div>
+        <div class="card">
+          <h2>บันทึกข้อมูลยืนยันแล้ว</h2>
+          <form id="confirmOrderForm" class="form-grid-single">
+            <label>PO Number<input name="poNumber" id="confirmPoNumber" required></label>
+            <label>ชื่อลูกค้า<input name="customerName" required></label>
+            <label>เบอร์โทร<input name="phone" required></label>
+            <label>ที่อยู่จัดส่ง<textarea name="address" rows="4" required></textarea></label>
+            <label>ลิงก์ Google Maps ปลายทาง<input name="mapsUrl" id="mapsUrlInput" type="url" required></label>
+            <label>พื้นที่ที่คำนวณได้อัตโนมัติ<input name="area" id="computedAreaInput" readonly></label>
+            <div class="soft-card">
+              <strong>เลือกสินค้าจาก Supabase</strong>
+              <div class="inline-meta">ค้นหาจาก product table เพื่อยืนยันรายการสินค้าที่ลูกค้าสั่ง</div>
+              <div class="toolbar mt-14">
+                <div class="toolbar-left">
+                  <input id="confirmProductSearch" type="text" placeholder="ค้นหาจากรหัสหรือชื่อสินค้า">
+                  <button type="button" class="btn btn-secondary" id="confirmProductSearchBtn">ค้นหา</button>
+                </div>
+              </div>
+              <div id="confirmProductResults"></div>
+              <div id="confirmSelectedProducts" class="mt-14"></div>
+            </div>
+            <label>รายการสินค้า<textarea name="items" id="confirmItemsTextarea" rows="4" required></textarea></label>
+            <label>ยอดยืนยัน<input name="confirmedAmount" type="number" min="0" step="0.01"></label>
+            <label>วันที่จัดส่ง<input name="deliveryDate" type="date" required></label>
+            <label>หมายเหตุหลังยืนยัน<input name="confirmNote"></label>
+            <button type="submit" class="btn btn-primary">ยืนยันและสร้างคำสั่งซื้อ</button>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <h2>รายการรอยืนยัน / ยืนยันแล้ว</h2>
+        <div id="confirmOrdersTableWrap"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

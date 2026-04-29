@@ -1,0 +1,601 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>ประวัติคืน / ตัดออก</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css?v=20260402-sidebar">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <style>
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .summary-box.total .value { color: #111827; }
+    .summary-box.expire .value { color: #c2410c; }
+    .summary-box.soldout .value { color: #4338ca; }
+    .summary-box.damage .value { color: #7e22ce; }
+    .summary-box.qty .value { color: #7c3aed; }
+
+    .toolbar-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 190px 190px 210px auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .table-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .result-count {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge.returned {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .badge.disposed {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .badge.expired {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+
+    .badge.soldout {
+      background: #eef2ff;
+      color: #4338ca;
+    }
+
+    .badge.damaged {
+      background: #f3e8ff;
+      color: #7e22ce;
+    }
+
+    .badge.final-damaged {
+      background: #faf5ff;
+      color: #7e22ce;
+    }
+
+    .history-note {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    .loading-row {
+      text-align: center;
+      color: #6b7280;
+      padding: 24px;
+    }
+
+    .table-wrap table {
+      min-width: 1350px;
+    }
+
+    @media (max-width: 1200px) {
+      .toolbar-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .summary-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .summary-row {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>เมนู</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="suppliers.html">ผู้จำหน่าย</a>
+    <a href="products.html">สินค้า</a>
+    <a href="stock_in.html">รับสินค้าเข้า</a>
+    <a href="stock_out.html">ตัดสต๊อก / ตรวจนับ</a>
+    <a href="expire_returns.html">จัดการของหมดอายุ / ชำรุด</a>
+    <a href="expired_history.html" class="active">ประวัติคืน / ตัดออก</a>
+    <a href="damaged_manage.html">แจ้งสินค้าชำรุด</a>
+  </div>
+
+  <div class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>ประวัติคืน / ตัดออก</h1>
+        <p>
+          หน้านี้ใช้ดูประวัติสินค้าที่จัดการเสร็จแล้ว พร้อมแยกให้ชัดว่าแต่ละรายการมาจากสินค้าหมดอายุ สินค้าหมดสต๊อก หรือสินค้าชำรุด
+        </p>
+      </div>
+
+      <div class="topbar-right">
+        <button type="button" class="btn-primary" onclick="loadData()">รีเฟรช</button>
+      </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <div class="summary-row">
+      <div class="summary-box total">
+        <div class="label">รายการทั้งหมด</div>
+        <div class="value" id="sumTotal">0</div>
+      </div>
+      <div class="summary-box expire">
+        <div class="label">มาจากสินค้าหมดอายุ</div>
+        <div class="value" id="sumExpire">0</div>
+      </div>
+      <div class="summary-box soldout">
+        <div class="label">มาจากสินค้าหมดสต๊อก</div>
+        <div class="value" id="sumSoldOut">0</div>
+      </div>
+      <div class="summary-box damage">
+        <div class="label">มาจากสินค้าชำรุด</div>
+        <div class="value" id="sumDamage">0</div>
+      </div>
+      <div class="summary-box qty">
+        <div class="label">จำนวนรวมในประวัติ</div>
+        <div class="value" id="sumQty">0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>รายการประวัติ</h2>
+      <p class="subtext">ค้นหาและกรองข้อมูลสินค้าที่จัดการเสร็จแล้วได้จากหน้านี้</p>
+
+      <div class="toolbar-grid">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="ค้นหาสินค้า / ล็อต / ผู้จำหน่าย / หมายเหตุ"
+          oninput="renderTable()"
+        >
+
+        <select id="causeFilter" onchange="renderTable()">
+          <option value="all">ทุกสาเหตุ</option>
+          <option value="expire">สินค้าหมดอายุ</option>
+          <option value="damage">สินค้าชำรุด</option>
+          <option value="sold_out">สินค้าหมดสต๊อก</option>
+        </select>
+
+        <select id="statusFilter" onchange="renderTable()">
+          <option value="all">ทุกสถานะในประวัติ</option>
+          <option value="sold_out">หมดสต๊อก</option>
+          <option value="returned">ส่งคืนแล้ว</option>
+          <option value="disposed">ทำลาย</option>
+          <option value="damaged">ชำรุด</option>
+        </select>
+
+        <select id="sortFilter" onchange="renderTable()">
+          <option value="handled_desc">จัดการล่าสุด</option>
+          <option value="handled_asc">จัดการเก่าสุด</option>
+          <option value="date_desc">วันที่อ้างอิงล่าสุด</option>
+          <option value="date_asc">วันที่อ้างอิงเก่าสุด</option>
+          <option value="name_asc">ชื่อสินค้า A-Z</option>
+        </select>
+
+        <button type="button" class="btn-secondary" onclick="clearFilters()">ล้างตัวกรอง</button>
+      </div>
+
+      <div class="table-topbar">
+        <div class="result-count" id="resultCount">0 รายการ</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ที่มา</th>
+              <th>สินค้า</th>
+              <th>ล็อต</th>
+              <th>วันที่อ้างอิง</th>
+              <th>จำนวนที่จัดการ</th>
+              <th>ผู้จำหน่าย</th>
+              <th>สถานะสุดท้าย</th>
+              <th>หมายเหตุ</th>
+              <th>วันที่จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="9" class="loading-row">กำลังโหลดข้อมูล...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="history-note">
+        หมายเหตุ: คอลัมน์ "ที่มา" จะแสดงชัดเจนว่ารายการนั้นมาจากสินค้าหมดอายุ สินค้าหมดสต๊อก หรือสินค้าชำรุด
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://uaqljdqtitdpctjxhutv.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_acbHgymVZkSQv0cHco0WWw_2Aipv9hL";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let rowsCache = [];
+    let filteredRowsCache = [];
+
+    function showMessage(text, type = "info") {
+      const box = document.getElementById("messageBox");
+      box.className = "message-box";
+      box.style.display = "block";
+      box.textContent = text;
+
+      if (type === "success") box.classList.add("message-success");
+      else if (type === "error") box.classList.add("message-error");
+      else box.classList.add("message-info");
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function clearMessage() {
+      const box = document.getElementById("messageBox");
+      box.className = "message-box";
+      box.textContent = "";
+      box.style.display = "none";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "-";
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString("th-TH");
+    }
+
+    function formatDateTime(dateStr) {
+      if (!dateStr) return "-";
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleString("th-TH");
+    }
+
+    function formatNumber(value) {
+      const num = Number(value || 0);
+      return num.toLocaleString("th-TH", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function safeDateValue(dateStr) {
+      if (!dateStr) return 0;
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+
+    function getStatusBadge(status) {
+      if (status === "sold_out") {
+        return `<span class="badge soldout">หมดสต๊อก</span>`;
+      }
+      if (status === "returned") {
+        return `<span class="badge returned">ส่งคืนแล้ว</span>`;
+      }
+      if (status === "disposed") {
+        return `<span class="badge disposed">ทำลาย</span>`;
+      }
+      if (status === "damaged") {
+        return `<span class="badge final-damaged">ชำรุด</span>`;
+      }
+      return `<span class="badge disposed">${escapeHtml(status || "-")}</span>`;
+    }
+
+    function normalizeDamageFinalStatus(rawStatus) {
+      const value = String(rawStatus || "").trim().toLowerCase();
+      if (
+        value === "returned" ||
+        value === "ส่งคืน supplier แล้ว".toLowerCase() ||
+        value === "ส่งคืนผู้จำหน่ายแล้ว".toLowerCase() ||
+        value === "ส่งคืนแล้ว".toLowerCase()
+      ) {
+        return "returned";
+      }
+      if (
+        value === "disposed" ||
+        value === "ทิ้งแล้ว".toLowerCase() ||
+        value === "ตัดออกแล้ว".toLowerCase() ||
+        value === "ทำลาย".toLowerCase()
+      ) {
+        return "disposed";
+      }
+      return "damaged";
+    }
+
+    function getCauseBadge(cause) {
+      if (cause === "expire") {
+        return `<span class="badge expired">สินค้าหมดอายุ</span>`;
+      }
+      if (cause === "damage") {
+        return `<span class="badge damaged">สินค้าชำรุด</span>`;
+      }
+      if (cause === "sold_out") {
+        return `<span class="badge soldout">สินค้าหมดสต๊อก</span>`;
+      }
+      return `<span class="badge damaged">-</span>`;
+    }
+
+    function updateSummary(rows) {
+      const total = rows.length;
+      const expireCount = rows.filter(r => r.cause_type === "expire").length;
+      const soldOutCount = rows.filter(r => r.cause_type === "sold_out").length;
+      const qty = rows.reduce((sum, r) => sum + Number(r.qty || 0), 0);
+      const damageCount = rows.filter(r => r.cause_type === "damage").length;
+
+      document.getElementById("sumTotal").textContent = formatNumber(total);
+      document.getElementById("sumExpire").textContent = formatNumber(expireCount);
+      document.getElementById("sumSoldOut").textContent = formatNumber(soldOutCount);
+      document.getElementById("sumDamage").textContent = formatNumber(damageCount);
+      document.getElementById("sumQty").textContent = formatNumber(qty);
+    }
+
+    function updateResultCount(rows) {
+      document.getElementById("resultCount").textContent = `${formatNumber(rows.length)} รายการ`;
+    }
+
+    function clearFilters() {
+      document.getElementById("searchInput").value = "";
+      document.getElementById("causeFilter").value = "all";
+      document.getElementById("statusFilter").value = "all";
+      document.getElementById("sortFilter").value = "handled_desc";
+      renderTable();
+    }
+
+    async function loadExpiredHistory() {
+      const { data, error } = await supabaseClient
+        .from("batches")
+        .select(`
+          id,
+          batch_no,
+          expiry_date,
+          quantity_remaining,
+          handling_status,
+          handling_note,
+          handled_at,
+          product_id,
+          supplier_id,
+          products:product_id (
+            product_name,
+            unit
+          ),
+          suppliers:supplier_id (
+            name
+          )
+        `)
+        .in("handling_status", ["returned", "disposed"])
+        .order("handled_at", { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(item => ({
+        row_key: `expire_${item.id}`,
+        cause_type: String(item.handling_note || "").includes("[SOLD_OUT_CONFIRMED]") ? "sold_out" : "expire",
+        product_name: item.products?.product_name || "-",
+        product_unit: item.products?.unit || "-",
+        batch_no: item.batch_no || "-",
+        reference_date: item.expiry_date,
+        qty: Number(item.quantity_remaining || 0),
+        supplier_name: item.suppliers?.name || "-",
+        final_status: String(item.handling_note || "").includes("[SOLD_OUT_CONFIRMED]")
+          ? "sold_out"
+          : item.handling_status,
+        note: item.handling_note || "",
+        handled_at: item.handled_at
+      }));
+    }
+
+    async function loadDamageHistory() {
+      const { data, error } = await supabaseClient
+        .from("damage_reports")
+        .select(`
+          id,
+          batch_id,
+          product_id,
+          product_name,
+          batch_no,
+          supplier,
+          damage_qty,
+          damage_reason,
+          damage_status,
+          note,
+          reported_by,
+          reported_at,
+          updated_at
+        `)
+        .order("updated_at", { ascending: false });
+
+      if (error) throw error;
+
+      return (data || [])
+        .map(item => ({
+          row_key: `damage_${item.id}`,
+          cause_type: "damage",
+          product_name: item.product_name || "-",
+          product_unit: "-",
+          batch_no: item.batch_no || "-",
+          reference_date: item.reported_at,
+          qty: Number(item.damage_qty || 0),
+          supplier_name: item.supplier || "-",
+          final_status: normalizeDamageFinalStatus(item.damage_status),
+          note: item.note || item.damage_reason || "",
+          handled_at: item.updated_at || item.reported_at
+        }))
+        .filter(item => ["returned", "disposed", "damaged"].includes(item.final_status));
+    }
+
+    async function loadData() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" class="loading-row">กำลังโหลดข้อมูล...</td>
+        </tr>
+      `;
+
+      try {
+        clearMessage();
+        showMessage("กำลังโหลดข้อมูล...", "info");
+
+        const [expiredRows, damageRows] = await Promise.all([
+          loadExpiredHistory(),
+          loadDamageHistory()
+        ]);
+
+        rowsCache = [...expiredRows, ...damageRows];
+        updateSummary(rowsCache);
+        renderTable();
+        clearMessage();
+      } catch (error) {
+        console.error("loadData error:", error);
+        rowsCache = [];
+        filteredRowsCache = [];
+        updateSummary([]);
+        updateResultCount([]);
+
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="empty-state">โหลดข้อมูลไม่สำเร็จ</td>
+          </tr>
+        `;
+
+        showMessage("โหลดประวัติไม่สำเร็จ: " + error.message, "error");
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("tableBody");
+      const search = document.getElementById("searchInput").value.trim().toLowerCase();
+      const causeFilter = document.getElementById("causeFilter").value;
+      const statusFilter = document.getElementById("statusFilter").value;
+      const sortFilter = document.getElementById("sortFilter").value;
+
+      let rows = [...rowsCache];
+
+      if (search) {
+        rows = rows.filter(item =>
+          String(item.product_name || "").toLowerCase().includes(search) ||
+          String(item.batch_no || "").toLowerCase().includes(search) ||
+          String(item.supplier_name || "").toLowerCase().includes(search) ||
+          String(item.note || "").toLowerCase().includes(search)
+        );
+      }
+
+      if (causeFilter !== "all") {
+        rows = rows.filter(item => item.cause_type === causeFilter);
+      }
+
+      if (statusFilter !== "all") {
+        rows = rows.filter(item => item.final_status === statusFilter);
+      }
+
+      switch (sortFilter) {
+        case "handled_asc":
+          rows.sort((a, b) => safeDateValue(a.handled_at) - safeDateValue(b.handled_at));
+          break;
+        case "date_desc":
+          rows.sort((a, b) => safeDateValue(b.reference_date) - safeDateValue(a.reference_date));
+          break;
+        case "date_asc":
+          rows.sort((a, b) => safeDateValue(a.reference_date) - safeDateValue(b.reference_date));
+          break;
+        case "name_asc":
+          rows.sort((a, b) =>
+            String(a.product_name || "").localeCompare(String(b.product_name || ""), "th")
+          );
+          break;
+        default:
+          rows.sort((a, b) => safeDateValue(b.handled_at) - safeDateValue(a.handled_at));
+      }
+
+      filteredRowsCache = rows;
+      updateResultCount(rows);
+
+      if (!rows.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="empty-state">ไม่พบข้อมูลประวัติ</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(item => `
+        <tr>
+          <td>${getCauseBadge(item.cause_type)}</td>
+          <td><strong>${escapeHtml(item.product_name)}</strong><div class="sub-mini-text">หน่วย: ${escapeHtml(item.product_unit || "-")}</div></td>
+          <td>${escapeHtml(item.batch_no || "-")}</td>
+          <td>${escapeHtml(formatDate(item.reference_date))}</td>
+          <td>${escapeHtml(formatNumber(item.qty))}</td>
+          <td>${escapeHtml(item.supplier_name || "-")}</td>
+          <td>${getStatusBadge(item.final_status)}</td>
+          <td>${escapeHtml(item.note || "-")}</td>
+          <td>${escapeHtml(formatDateTime(item.handled_at))}</td>
+        </tr>
+      `).join("");
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

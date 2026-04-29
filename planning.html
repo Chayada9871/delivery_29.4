@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>วางแผนจัดส่ง - ระบบจัดการงานส่งสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="planning">
+  <aside class="sidebar">
+    <h2>Sophon Driver</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="line_orders.html">รับออเดอร์ Line</a>
+    <a href="confirm_orders.html">ยืนยันรายละเอียด</a>
+    <a href="orders.html">คำสั่งซื้อ</a>
+    <a href="planning.html" class="active">วางแผนจัดส่ง</a>
+    <a href="driver.html">หน้าคนขับ</a>
+    <a href="reports.html">รายงานผลงาน</a>
+    <a href="users.html">ผู้ใช้และสิทธิ์</a>
+  </aside>
+  <main class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>วางแผนและมอบหมายงาน</h1>
+        <p>วางแผนงานส่งแบบศูนย์กระจายสินค้าของธุรกิจค้าส่ง: รวมงานตามโซน สร้างรอบวิ่ง จัดโหลด และมอบหมายคนขับตามความพร้อม</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ขั้นตอนที่พนักงานและผู้จัดการต้องทำ</h2>
+      <div class="workflow-steps">
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">CHK</div>
+          <div>
+            <h3>เช็ก order</h3>
+            <p>ดูงานที่ยืนยันแล้ว</p>
+            <div class="workflow-mini">พร้อมจัดส่ง</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">ZONE</div>
+          <div>
+            <h3>จัดโซน</h3>
+            <p>รวมตามเขต / อำเภอ</p>
+            <div class="workflow-mini">ลดการวิ่งซ้ำ</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">DRV</div>
+          <div>
+            <h3>ลงคนขับ</h3>
+            <p>จับคู่รถและรอบวิ่ง</p>
+            <div class="workflow-mini">ตามความจุรถ</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">SEND</div>
+          <div>
+            <h3>โหลดและส่ง</h3>
+            <p>ขึ้นรถ -> ออกส่ง</p>
+            <div class="workflow-mini">ตามลำดับ route</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>กระดานวางแผนรอบส่ง</h2>
+      <div id="dispatchOverview"></div>
+    </div>
+    <div class="main-grid">
+      <div class="left-stack">
+        <div class="card">
+          <h2>มอบหมายงานให้คนขับ</h2>
+          <form id="assignmentForm" class="form-grid-single">
+            <label>เลือกคำสั่งซื้อ<select name="orderId" id="assignOrder"></select></label>
+            <label>เลือกพนักงานขับรถ<select name="driverId" id="assignDriver"></select></label>
+            <button type="submit" class="btn btn-primary">มอบหมายงาน</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>ข้อเสนอรอบวิ่งแบบค้าส่ง</h2>
+          <div id="waveSuggestions"></div>
+        </div>
+      </div>
+      <div class="left-stack">
+        <div class="card">
+          <h2>สระงานตามโซนปลายทาง</h2>
+          <div id="planningAreaSummary"></div>
+        </div>
+        <div class="card">
+          <h2>แผนโหลดและลำดับส่ง</h2>
+          <div id="driverRoutes"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

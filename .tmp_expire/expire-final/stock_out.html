@@ -1,0 +1,3823 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ตัดสต๊อก / ตรวจนับ / Daily Sales</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  </script>
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css?v=20260402-sidebar">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <style>
+    body {
+      font-family: "Prompt", Arial, sans-serif;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #f3f4f6;
+      color: #374151;
+      margin-left: 10px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .readonly-note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 10px 12px;
+      line-height: 1.6;
+    }
+
+    .line-item-missing {
+      border: 2px solid #dc2626 !important;
+      background: #fef2f2 !important;
+    }
+
+    .pdf-preview-qty-input {
+      width: 100%;
+      min-width: 90px;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    .pdf-preview-qty-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .pdf-preview-row-edited {
+      background: #fff7ed !important;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 980px;
+      max-height: 90vh;
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #fff;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 20px;
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
+    }
+
+    .modal-footer button {
+      min-width: 140px;
+    }
+
+    .modal-close {
+      border: none;
+      background: #ef4444;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-info,
+    .btn-warning,
+    .btn-danger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .doc-table-wrap {
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1050px;
+    }
+
+    .doc-table th,
+    .doc-table td {
+      padding: 12px;
+      border-bottom: 1px solid #ececec;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    .doc-table th {
+      background: #f8fafc;
+      font-weight: 700;
+      color: #374151;
+      white-space: nowrap;
+    }
+
+    .doc-name {
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .doc-sub {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .lot-card {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(251, 191, 36, 0.28);
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    .lot-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .lot-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .lot-card-no {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: #0f172a;
+      word-break: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .lot-card-status {
+      font-size: 11px;
+      font-weight: 700;
+      color: #92400e;
+      background: #fef3c7;
+      border-radius: 999px;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+
+    .lot-meta-list {
+      display: grid;
+      gap: 5px;
+    }
+
+    .lot-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #475569;
+    }
+
+    .lot-meta-label {
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .lot-history-box {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    .lot-history-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+
+    .lot-history-line {
+      font-size: 12px;
+      line-height: 1.45;
+      color: #475569;
+    }
+
+    .lot-history-line.is-selected {
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+
+    .stock-out-table {
+      min-width: 1480px;
+      table-layout: auto;
+    }
+
+    .stock-out-table th,
+    .stock-out-table td {
+      vertical-align: top;
+    }
+
+    .stock-out-table th:nth-child(1),
+    .stock-out-table td:nth-child(1) {
+      min-width: 220px;
+    }
+
+    .stock-out-table th:nth-child(5),
+    .stock-out-table td:nth-child(5) {
+      min-width: 120px;
+    }
+
+    .stock-out-table th:nth-child(6),
+    .stock-out-table td:nth-child(6) {
+      min-width: 320px;
+      width: 320px;
+    }
+
+    .stock-out-table th:nth-child(7),
+    .stock-out-table td:nth-child(7) {
+      min-width: 170px;
+    }
+
+    .stock-out-table th:nth-child(8),
+    .stock-out-table td:nth-child(8) {
+      min-width: 130px;
+    }
+
+    .stock-out-table th:nth-child(9),
+    .stock-out-table td:nth-child(9) {
+      min-width: 150px;
+    }
+
+    .name-col {
+      min-width: 120px;
+    }
+
+    .status-col {
+      min-width: 130px;
+    }
+
+    .action-col {
+      min-width: 260px;
+    }
+
+    .locked-card {
+      margin-bottom: 20px;
+    }
+
+    .user-only-banner {
+      display: none;
+      margin-bottom: 20px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #eff6ff, #f8fbff);
+      border: 1px solid #bfdbfe;
+    }
+
+    .user-only-banner h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      color: #1d4ed8;
+    }
+
+    .user-only-banner p {
+      margin: 0;
+      color: #475569;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .page.user-view .main-grid {
+      display: block;
+    }
+
+    .page.user-view .left-stack,
+    .page.user-view #salesAccessLockedCard {
+      display: none !important;
+    }
+
+    .page.user-view .topbar {
+      margin-bottom: 18px;
+    }
+
+    .page.user-view .page-header h1 {
+      font-size: 28px;
+    }
+
+    .page.user-view .page-header p {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .page.user-view .user-only-banner {
+      display: block;
+    }
+
+    .page.user-view .card.stock-check-card {
+      width: 100%;
+    }
+
+    .page.user-view .topbar-right {
+      gap: 10px;
+    }
+
+    .page.user-view .summary-box {
+      min-width: 120px;
+    }
+
+    .doc-open-btn-disabled {
+      opacity: 0.65;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>เมนู</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="suppliers.html">ผู้จำหน่าย</a>
+    <a href="products.html">สินค้า</a>
+    <a href="stock_in.html">รับสินค้าเข้า</a>
+    <a href="stock_out.html" class="active">ตัดสต๊อก / ตรวจนับ</a>
+    <a href="expire_returns.html">จัดการของหมดอายุ / ชำรุด</a>
+    <a href="expired_history.html">ประวัติคืน / ตัดออก</a>
+    <a href="damaged_manage.html">แจ้งสินค้าชำรุด</a>
+  </div>
+
+  <div class="page" id="mainPage">
+    <div class="topbar">
+      <div class="page-header">
+        <h1 id="pageTitle">ตัดสต๊อก / ตรวจนับ / Daily Sales <span class="role-badge" id="currentRoleBadge">ROLE</span></h1>
+        <p id="pageSubtitle">อัปโหลด PDF, บันทึกรายการขาย, ตัดสต๊อก และตรวจนับจริง</p>
+      </div>
+
+      <div class="topbar-right">
+        <div class="summary-box">
+          <div class="label">จำนวนล็อต</div>
+          <div class="value" id="topSummaryCount">0</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">คงเหลือรวม</div>
+          <div class="value" id="topSummaryQty">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <div id="userOnlyBanner" class="user-only-banner">
+      <h3>โหมดผู้ใช้งานทั่วไป</h3>
+      <p>
+        บัญชี USER ใช้งานได้เฉพาะ <strong>ตรวจนับจริง</strong> และบันทึกชื่อผู้ตรวจนับ
+        ไม่สามารถเปิดดู อัปโหลด อ่าน แก้ไข หรือลบไฟล์ขายได้
+      </p>
+    </div>
+
+    <div id="salesAccessLockedCard" class="card locked-card" style="display:none;">
+      <h2>ส่วนเอกสารขาย</h2>
+      <p class="subtext">บัญชี USER ไม่สามารถเปิดดู เลือก อ่าน แก้ไข หรือลบเอกสารขายได้</p>
+      <div class="readonly-note" style="display:block;">
+        USER ใช้งานได้เฉพาะส่วน <strong>ตรวจนับจริง</strong> เท่านั้น
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="left-stack" id="salesAccessPanel">
+        <div class="card">
+          <h2>1. โหลด PDF</h2>
+          <p class="subtext">อัปโหลดเอกสารขายประจำวัน วันละ 1 ไฟล์ และอัปโหลดซ้ำเพื่อแทนที่ไฟล์เดิมได้</p>
+
+          <form id="salesUploadForm" class="form-grid">
+            <input type="hidden" id="salesUploadEditId">
+
+            <div class="two-col">
+              <div class="form-group">
+                <label for="salesDate">วันที่ขาย *</label>
+                <input type="date" id="salesDate" required>
+              </div>
+
+              <div class="form-group">
+                <label for="salesPdf">ไฟล์ PDF *</label>
+                <input type="file" id="salesPdf" accept="application/pdf">
+              </div>
+            </div>
+
+            <div class="form-group full">
+              <label for="salesUploadNote">หมายเหตุ</label>
+              <textarea id="salesUploadNote" placeholder="หมายเหตุ"></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary" id="uploadSalesBtn">อัปโหลด PDF</button>
+              <button type="button" class="btn-secondary" id="resetSalesUploadBtn" onclick="resetSalesUploadForm()">ล้างข้อมูล</button>
+            </div>
+
+            <button type="button" class="btn-secondary hidden" id="cancelSalesUploadEditBtn" onclick="cancelSalesUploadEdit()">ยกเลิกการแก้ไข</button>
+
+            <div id="salesUploadReadonlyNote" class="readonly-note hidden">
+              USER ใช้งานได้เฉพาะตรวจนับจริง ไม่สามารถอัปโหลดหรือเปิดดูไฟล์ขายได้
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>2. รายการขาย</h2>
+          <p class="subtext">เลือกเอกสาร แล้วอ่าน PDF หรือดูสรุปรายการขาย</p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="selectedSalesUpload">เอกสาร *</label>
+              <select id="selectedSalesUpload" onchange="onChangeSelectedSalesUpload()">
+                <option value="">-- เลือกเอกสาร --</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mini-boxes">
+            <div class="mini-box">
+              <div class="label">รายการ</div>
+              <div class="value" id="salesLineCount">0</div>
+            </div>
+            <div class="mini-box">
+              <div class="label">ยอดรวม</div>
+              <div class="value" id="salesLineQtyTotal">0</div>
+            </div>
+            <div class="mini-box">
+              <div class="label">สถานะ</div>
+              <div class="value" id="salesUploadStatusLabel">-</div>
+            </div>
+            <div class="mini-box">
+              <div class="label">ช่วงวันที่ในรายงาน</div>
+              <div class="value" id="detailReportDateRange">-</div>
+            </div>
+          </div>
+
+          <div class="form-actions mt-14">
+            <button type="button" class="btn-info" id="autoReadPdfBtn" onclick="autoReadSelectedSalesPdf()">อ่าน PDF</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>3. เอกสารที่บันทึกไว้</h2>
+          <p class="subtext">แสดงชื่อผู้อัปโหลด ผู้แก้ไข และผู้ตรวจนับล่าสุด</p>
+          <div id="salesUploadsList"></div>
+        </div>
+      </div>
+
+      <div class="card stock-check-card">
+        <h2 id="stockCheckCardTitle">ล็อตสินค้า / ตรวจนับจริง</h2>
+        <p class="subtext" id="stockCheckCardSubtitle">ดูแบบง่ายขึ้น และแสดงรายการที่ต้องให้ manager ตรวจชัดเจน</p>
+
+        <div class="simple-top-summary">
+          <div class="simple-stat">
+            <div class="label">ทั้งหมด</div>
+            <div class="value" id="statAll">0</div>
+          </div>
+          <div class="simple-stat">
+            <div class="label">หมดอายุ</div>
+            <div class="value" id="statExpired">0</div>
+          </div>
+          <div class="simple-stat">
+            <div class="label">ใกล้หมดอายุ</div>
+            <div class="value" id="statWarning">0</div>
+          </div>
+          <div class="simple-stat">
+            <div class="label">รอตรวจสอบ</div>
+            <div class="value simple-red" id="statReview">0</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="searchInput" placeholder="ค้นหา" oninput="renderBatches()">
+            </div>
+
+            <select id="statusFilter" onchange="renderBatches()">
+              <option value="all">ทุกสถานะ</option>
+              <option value="review">รอตรวจสอบ</option>
+              <option value="expired">หมดอายุ</option>
+              <option value="warning">ใกล้หมดอายุ</option>
+              <option value="safe">ปกติ</option>
+            </select>
+
+            <button type="button" class="btn-secondary" onclick="clearSearch()">ล้าง</button>
+          </div>
+        </div>
+
+        <div class="table-info" id="tableInfoText">กำลังโหลดข้อมูล...</div>
+        
+        <div class="table-wrap">
+          <table class="stock-out-table">
+            <thead>
+              <tr>
+                <th>&#3626;&#3636;&#3609;&#3588;&#3657;&#3634;</th>
+                <th>&#3619;&#3627;&#3633;&#3626;/&#3610;&#3634;&#3619;&#3660;&#3650;&#3588;&#3657;&#3604;</th>
+                <th>&#3588;&#3591;&#3648;&#3627;&#3621;&#3639;&#3629;&#3619;&#3623;&#3617;</th>
+                <th>&#3626;&#3656;&#3623;&#3609;&#3605;&#3656;&#3634;&#3591;&#3621;&#3656;&#3634;&#3626;&#3640;&#3604;</th>
+                <th>&#3618;&#3629;&#3604;&#3586;&#3634;&#3618;&#3605;&#3633;&#3604;</th>
+                <th>&#3621;&#3655;&#3629;&#3605;</th>
+                <th>&#3626;&#3606;&#3634;&#3609;&#3632;</th>
+                <th>&#3612;&#3641;&#3657;&#3610;&#3633;&#3609;&#3607;&#3638;&#3585;&#3621;&#3656;&#3634;&#3626;&#3640;&#3604;</th>
+                <th>&#3592;&#3633;&#3604;&#3585;&#3634;&#3619;</th>
+              </tr>
+            </thead>
+            <tbody id="batchTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="insufficientModalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>รายการที่สต๊อกไม่พอ</h3>
+        <button class="modal-close" onclick="closeInsufficientModal()">ปิด</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>รหัสสินค้า</th>
+                <th>ชื่อสินค้า</th>
+                <th>ต้องใช้</th>
+                <th>คงเหลือ</th>
+                <th>ขาด</th>
+              </tr>
+            </thead>
+            <tbody id="insufficientTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="productStockCheckModalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>ตรวจนับจริง</h3>
+        <button type="button" class="modal-close" onclick="closeProductStockCheckModal()">ปิด</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="productCheckProductId">
+
+        <div class="modal-info-grid">
+          <div class="modal-info-box">
+            <div class="label">สินค้า</div>
+            <div class="value" id="productCheckProductName">-</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">รหัส / บาร์โค้ด</div>
+            <div class="value" id="productCheckBarcode">-</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">คงเหลือปัจจุบัน</div>
+            <div class="value" id="productCheckSystemTotal">0</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">ก่อนตัดไฟล์นี้</div>
+            <div class="value" id="productCheckOriginalTotal">0</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">นับจริง</div>
+            <div class="value" id="productCheckActualTotal">0</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">ส่วนต่างรวม</div>
+            <div class="value" id="productCheckTotalChange">0</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">ไฟล์ที่เลือก</div>
+            <div class="value" id="productCheckSelectedDate">-</div>
+          </div>
+        </div>
+
+        <div id="productCheckMismatchAlert" class="danger-box" style="display:none;">
+          ยอดรวมที่นับจริงไม่ตรงกับคงเหลือปัจจุบัน กรุณากรอกหมายเหตุเพื่อให้ผู้จัดการตรวจสอบต่อ
+        </div>
+
+        <div class="table-wrap mb-16">
+          <table>
+            <thead>
+              <tr>
+                <th>ล็อต</th>
+                <th>หมดอายุ</th>
+                <th>ก่อนตัดไฟล์นี้</th>
+                <th>ตัดจากไฟล์ที่เลือก</th>
+                <th>คงเหลือปัจจุบัน</th>
+                <th>นับจริง</th>
+                <th>ส่วนต่าง</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody id="productStockCheckTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="productCheckVarianceSummary">สรุป</label>
+            <input type="text" id="productCheckVarianceSummary" readonly>
+          </div>
+
+          <div class="form-group full">
+            <label for="productCheckNote">หมายเหตุ</label>
+            <textarea id="productCheckNote" placeholder="หากยอดรวมไม่ตรง กรุณากรอกหมายเหตุ"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeProductStockCheckModal()">ยกเลิก</button>
+        <button type="button" class="btn-primary" id="productStockCheckBtn" onclick="submitProductStockCheck()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pdfPreviewModalBackdrop" class="modal-backdrop">
+    <div class="modal" style="max-width: 980px;">
+      <div class="modal-header">
+        <h3>ตรวจสอบรายการขายจากเอกสาร</h3>
+        <button type="button" class="modal-close" onclick="closePdfPreviewModal()">ปิด</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="warning-box" style="margin-bottom:12px;">
+          กรุณาตรวจสอบรายการขายจากไฟล์ PDF ให้ถูกต้องก่อนบันทึกและตัดสต๊อก
+        </div>
+
+        <div class="mini-boxes" style="margin-bottom:14px;">
+          <div class="mini-box">
+            <div class="label">จำนวนรายการ</div>
+            <div class="value" id="pdfPreviewCount">0</div>
+          </div>
+          <div class="mini-box">
+            <div class="label">ยอดรวม</div>
+            <div class="value" id="pdfPreviewQty">0</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 180px;">รหัสสินค้า</th>
+                <th>ชื่อสินค้า</th>
+                <th style="width: 160px;">จำนวนขาย</th>
+                <th style="width: 160px;">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="pdfPreviewTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closePdfPreviewModal()">ยกเลิก</button>
+        <button type="button" class="btn-primary" id="pdfPreviewSaveAndProcessBtn" onclick="saveAndProcessFromPdfPreview()">บันทึกและตัดสต๊อก</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CONFIG = {
+      SUPABASE_URL: "https://uaqljdqtitdpctjxhutv.supabase.co",
+      SUPABASE_ANON_KEY: "sb_publishable_acbHgymVZkSQv0cHco0WWw_2Aipv9hL",
+      SALES_BUCKET: "sales-pdfs",
+      WARNING_DAYS: 7
+    };
+
+    const supabaseClient = supabase.createClient(
+      CONFIG.SUPABASE_URL,
+      CONFIG.SUPABASE_ANON_KEY
+    );
+
+    window.supabaseClient = supabaseClient;
+
+    const state = {
+      batches: [],
+      products: [],
+      salesUploads: [],
+      salesLines: [],
+      salesBatchDeductMap: {},
+      salesBatchDeductHistoryMap: {},
+      pdfPreviewLines: [],
+      currentUser: null,
+      loading: {
+        salesUpload: false,
+        salesSave: false,
+        salesProcess: false,
+        stockCheckSave: false
+      }
+    };
+
+    const $ = (id) => document.getElementById(id);
+    function getSelectedUploadId() {
+      return $("selectedSalesUpload")?.value || "";
+    }
+
+    function getSelectedUploadStatusText() {
+      const upload = getUploadById(getSelectedUploadId());
+      if (!upload) return "-";
+      return upload.status === "processed" ? "ตัดสต๊อกแล้ว" : "รอดำเนินการ";
+    }
+  function getStatusPriority(status) {
+    if (status === "expired") return 0;
+    if (status === "warning") return 1;
+    if (status === "safe") return 2;
+    return 3;
+  }
+
+  function getGroupPriority(groupItems) {
+    const statuses = groupItems.map(item => item.calculated_status);
+    if (statuses.includes("expired")) return 0;
+    if (statuses.includes("warning")) return 1;
+    return 2;
+  }
+
+  function getItemPriority(item) {
+    if (item?.calculated_status === "expired") return 0;
+    if (item?.calculated_status === "warning") return 1;
+    if (normalizeNumber(item?.quantity_remaining) <= 0) return 2;
+    return 3;
+  }
+
+  function getExpiryTimestamp(expiryDate) {
+    const time = new Date(expiryDate || "9999-12-31").getTime();
+    return Number.isNaN(time) ? new Date("9999-12-31").getTime() : time;
+  }
+
+  function getGroupEarliestExpiry(groupItems) {
+    const timestamps = groupItems
+      .map(item => getExpiryTimestamp(item.expiry_date))
+      .filter(value => !Number.isNaN(value));
+
+    if (!timestamps.length) return new Date("9999-12-31").getTime();
+    return Math.min(...timestamps);
+  }
+
+  function getGroupSortMeta(groupItems) {
+    const priority = Math.min(...groupItems.map(getItemPriority));
+    const urgentItems = groupItems.filter(item => getItemPriority(item) < 2);
+    const sourceItems = urgentItems.length ? urgentItems : groupItems;
+    const earliestExpiry = Math.min(...sourceItems.map(item => getExpiryTimestamp(item.expiry_date)));
+    return {
+      priority,
+      earliestExpiry
+    };
+  }
+    function getCurrentUser() {
+      try {
+        return JSON.parse(localStorage.getItem("user"));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function requireLogin() {
+      const user = getCurrentUser();
+      if (!user) {
+        alert("กรุณาเข้าสู่ระบบ");
+        window.location.href = "login.html";
+        return null;
+      }
+      return user;
+    }
+
+    function canViewSalesFiles() {
+      return state.currentUser && ["admin", "manager"].includes(state.currentUser.role);
+    }
+
+    function canAddSalesUpload() {
+      return !!state.currentUser && ["admin", "manager", "user"].includes(state.currentUser.role);
+    }
+
+    function canEditSalesUpload() {
+      return state.currentUser && ["admin", "manager"].includes(state.currentUser.role);
+    }
+
+    function canDeleteSalesUpload() {
+      return state.currentUser && state.currentUser.role === "manager";
+    }
+
+    function canProcessSalesUpload() {
+      return state.currentUser && ["admin", "manager"].includes(state.currentUser.role);
+    }
+
+    function canStockCheck() {
+      return !!state.currentUser;
+    }
+
+    function canFinalizeStockOutConfirm() {
+      return state.currentUser && ["admin", "manager"].includes(state.currentUser.role);
+    }
+
+    function getRoleText(role) {
+      if (role === "admin") return "ADMIN";
+      if (role === "manager") return "MANAGER";
+      return "USER";
+    }
+
+    function getCurrentDisplayName() {
+      const user = state.currentUser || {};
+      return user.full_name || user.name || user.username || user.email || "unknown";
+    }
+
+    function parseSalesUploadNote(rawNote) {
+      const lines = String(rawNote || "").split(/\r?\n/);
+      const body = [];
+      let createdByName = "";
+      let updatedByName = "";
+      let checkedByName = "";
+
+      lines.forEach(line => {
+        if (line.startsWith("[META_CREATED_BY]")) {
+          createdByName = line.replace("[META_CREATED_BY]", "").trim();
+          return;
+        }
+        if (line.startsWith("[META_UPDATED_BY]")) {
+          updatedByName = line.replace("[META_UPDATED_BY]", "").trim();
+          return;
+        }
+        if (line.startsWith("[META_CHECKED_BY]")) {
+          checkedByName = line.replace("[META_CHECKED_BY]", "").trim();
+          return;
+        }
+        body.push(line);
+      });
+
+      return {
+        createdByName,
+        updatedByName,
+        checkedByName,
+        noteText: body.join("\n").trim()
+      };
+    }
+
+    function buildSalesUploadNote(noteText, meta = {}) {
+      const lines = [];
+      if (meta.createdByName) lines.push(`[META_CREATED_BY] ${meta.createdByName}`);
+      if (meta.updatedByName) lines.push(`[META_UPDATED_BY] ${meta.updatedByName}`);
+      if (meta.checkedByName) lines.push(`[META_CHECKED_BY] ${meta.checkedByName}`);
+
+      const trimmedNote = String(noteText || "").trim();
+      if (trimmedNote) lines.push(trimmedNote);
+      return lines.join("\n");
+    }
+
+    function enrichSalesUpload(item) {
+      const parsed = parseSalesUploadNote(item?.note);
+      return {
+        ...item,
+        note_text: parsed.noteText,
+        created_by_name: item?.created_by_name || parsed.createdByName || "",
+        updated_by_name: item?.updated_by_name || parsed.updatedByName || parsed.createdByName || "",
+        checked_by_name: item?.checked_by_name || parsed.checkedByName || ""
+      };
+    }
+
+    function rebuildSalesUploadNote(item, noteText, updatedByName, checkedByName) {
+      const existing = parseSalesUploadNote(item?.note);
+      return buildSalesUploadNote(noteText, {
+        createdByName: item?.created_by_name || existing.createdByName || updatedByName,
+        updatedByName: updatedByName || item?.updated_by_name || existing.updatedByName || existing.createdByName,
+        checkedByName: checkedByName || item?.checked_by_name || existing.checkedByName
+      });
+    }
+
+    function applyPermissionUI() {
+      const roleBadge = $("currentRoleBadge");
+      if (roleBadge) roleBadge.textContent = getRoleText(state.currentUser?.role || "user");
+
+      const readonlyNote = $("salesUploadReadonlyNote");
+      const cancelBtn = $("cancelSalesUploadEditBtn");
+      const autoReadBtn = $("autoReadPdfBtn");
+      const uploadBtn = $("uploadSalesBtn");
+      const resetBtn = $("resetSalesUploadBtn");
+      const salesPanel = $("salesAccessPanel");
+      const lockedCard = $("salesAccessLockedCard");
+      const selectedSalesUpload = $("selectedSalesUpload");
+      const salesDate = $("salesDate");
+      const salesPdf = $("salesPdf");
+      const salesNote = $("salesUploadNote");
+      const page = $("mainPage");
+      const title = $("pageTitle");
+      const subtitle = $("pageSubtitle");
+      const stockCheckTitle = $("stockCheckCardTitle");
+      const stockCheckSub = $("stockCheckCardSubtitle");
+
+      const allowSalesAccess = canViewSalesFiles();
+      const allowSalesPanel = canViewSalesFiles() || canAddSalesUpload();
+      const isUser = state.currentUser?.role === "user" && !canAddSalesUpload();
+
+      if (readonlyNote) readonlyNote.classList.toggle("hidden", allowSalesAccess);
+      if (cancelBtn) cancelBtn.classList.toggle("hidden", !canEditSalesUpload());
+      if (autoReadBtn) autoReadBtn.classList.toggle("hidden", !canProcessSalesUpload());
+      if (uploadBtn) uploadBtn.classList.toggle("hidden", !canAddSalesUpload());
+      if (resetBtn) resetBtn.classList.toggle("hidden", !canAddSalesUpload());
+
+      if (salesDate) salesDate.disabled = !canAddSalesUpload();
+      if (salesPdf) salesPdf.disabled = !canAddSalesUpload();
+      if (salesNote) salesNote.disabled = !canAddSalesUpload();
+      if (selectedSalesUpload) selectedSalesUpload.disabled = !allowSalesAccess;
+
+      if (salesPanel) salesPanel.style.display = allowSalesPanel ? "block" : "none";
+      if (lockedCard) lockedCard.style.display = "none";
+
+      if (page) page.classList.toggle("user-view", isUser);
+
+      if (isUser) {
+        if (title) {
+          title.innerHTML = `ตรวจนับสินค้า <span class="role-badge" id="currentRoleBadge">${getRoleText(state.currentUser?.role || "user")}</span>`;
+        }
+        if (subtitle) {
+          subtitle.textContent = "สำหรับผู้ใช้งานทั่วไป: ตรวจนับจริงและบันทึกผลการตรวจนับ";
+        }
+        if (stockCheckTitle) {
+          stockCheckTitle.textContent = "ตรวจนับสินค้า";
+        }
+        if (stockCheckSub) {
+          stockCheckSub.textContent = "ค้นหา ดูล็อตสินค้า และบันทึกผลตรวจนับจริง";
+        }
+      } else {
+        if (title) {
+          title.innerHTML = `ตัดสต๊อก / ตรวจนับ / Daily Sales <span class="role-badge" id="currentRoleBadge">${getRoleText(state.currentUser?.role || "user")}</span>`;
+        }
+        if (subtitle) {
+          subtitle.textContent = "อัปโหลด PDF, บันทึกรายการขาย, ตัดสต๊อก, ตรวจนับจริง";
+        }
+        if (stockCheckTitle) {
+          stockCheckTitle.textContent = "ล็อตสินค้า / ตรวจนับจริง";
+        }
+        if (stockCheckSub) {
+          stockCheckSub.textContent = "ดูแบบง่ายขึ้น และแสดงรายการที่ต้องให้ manager ตรวจชัดเจน";
+        }
+      }
+    }
+
+    function showMessage(text, type = "info") {
+      const box = $("messageBox");
+      box.className = "message-box";
+      box.style.display = "block";
+      box.textContent = text;
+
+      if (type === "success") box.classList.add("message-success");
+      else if (type === "error") box.classList.add("message-error");
+      else box.classList.add("message-info");
+    }
+
+    function clearMessage() {
+      const box = $("messageBox");
+      box.className = "message-box";
+      box.textContent = "";
+      box.style.display = "none";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function normalizeNumber(value) {
+      const num = Number(value || 0);
+      return Number.isNaN(num) ? 0 : num;
+    }
+
+    function formatQty(value) {
+      const num = normalizeNumber(value);
+      return num % 1 === 0 ? String(num) : num.toFixed(2);
+    }
+
+    function todayString() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function timestampThai() {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mi = String(now.getMinutes()).padStart(2, "0");
+      return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+    }
+
+    function formatDate(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return value;
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    function setLoadingButton(buttonId, loadingText, isLoading) {
+      const btn = $(buttonId);
+      if (!btn) return;
+      if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
+      btn.disabled = isLoading;
+      btn.textContent = isLoading ? loadingText : btn.dataset.originalText;
+    }
+
+    function getErrorText(error) {
+      if (!error) return "Unknown error";
+      return error.message || error.details || error.hint || JSON.stringify(error);
+    }
+
+    function calculateDaysLeft(expiryDate) {
+      if (!expiryDate) return null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const exp = new Date(expiryDate);
+      exp.setHours(0, 0, 0, 0);
+
+      const diff = exp - today;
+      return Math.floor(diff / (1000 * 60 * 60 * 24));
+    }
+
+    function getStatus(daysLeft) {
+      if (daysLeft === null) return "safe";
+      if (daysLeft < 0) return "expired";
+      if (daysLeft <= CONFIG.WARNING_DAYS) return "warning";
+      return "safe";
+    }
+
+   function getStatusBadge(status) {
+  if (status === "expired") return `<span class="status-badge status-expired">&#3627;&#3617;&#3604;&#3629;&#3634;&#3618;&#3640;</span>`;
+  if (status === "warning") return `<span class="status-badge status-warning">&#3652;&#3585;&#3621;&#3657;&#3627;&#3617;&#3604;&#3629;&#3634;&#3618;&#3640;</span>`;
+  return `<span class="status-badge status-safe">&#3611;&#3585;&#3605;&#3636;</span>`;
+}
+
+    function getSalesStatusBadge(status) {
+      if (status === "processed") {
+        return `<span class="status-badge status-processed">ตัดสต๊อกแล้ว</span>`;
+      }
+      return `<span class="status-badge status-pending">รอดำเนินการ</span>`;
+    }
+
+    function getDaysLeftText(daysLeft) {
+      if (daysLeft === null) return "-";
+      if (daysLeft < 0) return `เกิน ${Math.abs(daysLeft)} วัน`;
+      if (daysLeft === 0) return "วันนี้";
+      return `${daysLeft} วัน`;
+    }
+
+    function formatThaiShortDate(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = String(d.getFullYear() + 543).slice(-2);
+      return `${day}/${month}/${year}`;
+    }
+
+    function appendNote(oldNote, newLine) {
+  const trimmed = String(oldNote || "").trim();
+  return trimmed ? `${trimmed}\n${newLine}` : newLine;
+}
+
+function parseLatestStockCheckInfo(noteText) {
+  const text = String(noteText || "");
+  const lines = text.split("\n").map(line => line.trim()).filter(Boolean);
+
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+
+    if (line.includes("[STOCK_CHECK_DONE]")) {
+      const dateMatch = line.match(/\[DATE\]\s*([^|]+)/);
+      const userMatch = line.match(/\[USER\]\s*([^|]+)/);
+
+      return {
+        checked: true,
+        checked_at: dateMatch ? dateMatch[1].trim() : "",
+        checked_by: userMatch ? userMatch[1].trim() : ""
+      };
+    }
+  }
+
+  return {
+    checked: false,
+    checked_at: "",
+    checked_by: ""
+  };
+}
+
+function getLatestEditorInfo(groupItems) {
+  const candidates = [];
+
+  groupItems.forEach(item => {
+    if (item.latest_check?.checked) {
+      candidates.push({
+        name: item.latest_check.checked_by || "-",
+        at: item.updated_at || item.latest_check.checked_at || ""
+      });
+    }
+
+    if (item.handled_by) {
+      candidates.push({
+        name: item.handled_by || "-",
+        at: item.handled_at || ""
+      });
+    }
+  });
+
+  if (!candidates.length) return { name: "-", at: "-" };
+
+  candidates.sort((a, b) => {
+    const aTime = new Date(a.at || 0).getTime();
+    const bTime = new Date(b.at || 0).getTime();
+    return bTime - aTime;
+  });
+
+  return {
+    name: candidates[0].name || "-",
+    at: candidates[0].at || "-"
+  };
+}
+
+function formatEditorTimestamp(value) {
+  if (!value || value === "-") return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+
+    function getUploadById(uploadId) {
+      return state.salesUploads.find(item => String(item.id) === String(uploadId));
+    }
+
+    function getSalesUploadByDate(salesDate, ignoreId = "") {
+      return state.salesUploads.find(item =>
+        String(item.sales_date || "") === String(salesDate || "") &&
+        String(item.id) !== String(ignoreId || "")
+      ) || null;
+    }
+
+    function getProductDisplayCode(product) {
+      return String(product?.product_code || product?.barcode || "").trim();
+    }
+
+    function findProductByCodeOrBarcode(value) {
+      const target = String(value || "").trim().toLowerCase();
+      if (!target) return null;
+
+      return state.products.find(item => {
+        const barcode = String(item.barcode || "").trim().toLowerCase();
+        const productCode = String(item.product_code || "").trim().toLowerCase();
+        return target === barcode || target === productCode;
+      }) || null;
+    }
+
+    function clearSearch() {
+      $("searchInput").value = "";
+      $("statusFilter").value = "all";
+      renderBatches();
+    }
+
+    function updateTopSummary() {
+      $("topSummaryCount").textContent = state.batches.length;
+      const totalQty = state.batches.reduce((sum, item) => sum + normalizeNumber(item.quantity_remaining), 0);
+      $("topSummaryQty").textContent = formatQty(totalQty);
+    }
+
+    function getAvailableBatchesByBarcode(barcode) {
+      const target = String(barcode || "").trim().toLowerCase();
+
+      return state.batches
+        .filter(item => {
+          const batchCode = String(
+            item.products?.product_code ||
+            item.products?.barcode ||
+            item.product_barcode ||
+            ""
+          ).trim().toLowerCase();
+
+          return (
+            batchCode === target &&
+            normalizeNumber(item.quantity_remaining) > 0 &&
+            getStatus(calculateDaysLeft(item.expiry_date)) !== "expired"
+          );
+        })
+        .sort((a, b) => new Date(a.expiry_date || "9999-12-31") - new Date(b.expiry_date || "9999-12-31"));
+    }
+
+    function getBatchesByProduct(productId) {
+      return state.batches
+        .filter(item => Number(item.product_id) === Number(productId))
+        .sort((a, b) => new Date(a.expiry_date || "9999-12-31") - new Date(b.expiry_date || "9999-12-31"));
+    }
+
+    function getLatestManagerReviewChange(groupItems) {
+      let totalVariance = 0;
+      let hasFlag = false;
+
+      for (const item of groupItems) {
+        const note = String(item.note || "");
+        if (note.includes("[MANAGER_REVIEW]")) {
+          hasFlag = true;
+        }
+
+        const lines = note.split("\n");
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i];
+          if (line.includes("เธ•เธฃเธงเธเธเธฑเธเธเธฃเธดเธ")) {
+            const plusMatch = line.match(/เน€เธเธดเธ \+(\d+(?:\.\d+)?)/);
+            const minusMatch = line.match(/เธเธฒเธ” (\d+(?:\.\d+)?)/);
+            if (plusMatch) totalVariance += Number(plusMatch[1]);
+            if (minusMatch) totalVariance -= Number(minusMatch[1]);
+            break;
+          }
+        }
+      }
+
+      return {
+        hasFlag,
+        variance: Number(totalVariance.toFixed(2))
+      };
+    }
+
+    async function loadProducts() {
+      const { data, error } = await supabaseClient
+        .from("products")
+        .select("id, product_code, barcode, product_name")
+        .order("product_name", { ascending: true });
+
+      if (error) throw error;
+      state.products = data || [];
+    }
+
+    function splitSalesLinesByStock(lines) {
+      const enoughLines = [];
+      const insufficientLines = [];
+
+      for (const line of lines) {
+        const availableBatches = getAvailableBatchesByBarcode(line.product_barcode);
+        const totalAvailable = availableBatches.reduce(
+          (sum, batch) => sum + normalizeNumber(batch.quantity_remaining),
+          0
+        );
+
+        const requiredQty = normalizeNumber(line.sold_qty);
+
+        if (totalAvailable >= requiredQty) {
+          enoughLines.push(line);
+        } else {
+          insufficientLines.push({
+            ...line,
+            available_qty: Number(totalAvailable.toFixed(2)),
+            shortage_qty: Number((requiredQty - totalAvailable).toFixed(2))
+          });
+        }
+      }
+
+      return { enoughLines, insufficientLines };
+    }
+
+    async function loadBatches() {
+    const { data, error } = await supabaseClient
+      .from("batches")
+      .select(`
+        id,
+        product_id,
+        batch_no,
+        received_date,
+        expiry_date,
+        quantity_received,
+        quantity_remaining,
+        supplier_id,
+        status,
+        note,
+        handling_status,
+        handling_note,
+        handled_at,
+        handled_by,
+        created_at,
+        updated_at,
+        products:product_id (
+          id,
+          product_code,
+          barcode,
+          product_name,
+          unit
+        ),
+        suppliers:supplier_id (
+          id,
+          name,
+          contact,
+          phone
+        )
+      `)
+      .order("expiry_date", { ascending: true });
+
+    if (error) throw error;
+
+    state.batches = (data || []).filter(item => {
+      const handlingStatus = String(item.handling_status || "").toLowerCase();
+      const handlingNote = String(item.handling_note || "");
+      const isFinalized = ["returned", "disposed"].includes(handlingStatus);
+      const isConfirmedExpired = handlingNote.includes("[EXPIRED_CONFIRMED]") && ["pending", "contacted", "returned", "disposed"].includes(handlingStatus);
+      return !isFinalized && !isConfirmedExpired;
+    }).map(item => ({
+      ...item,
+      status: getStatus(calculateDaysLeft(item.expiry_date))
+    }));
+
+    updateTopSummary();
+  }
+
+    async function loadSalesUploads() {
+      const { data, error } = await supabaseClient
+        .from("sales_uploads")
+        .select(`
+          id,
+          sales_date,
+          file_name,
+          file_path,
+          file_url,
+          uploaded_at,
+          processed_at,
+          status,
+          note,
+          report_date_start,
+          report_date_end,
+          created_by_name,
+          updated_by_name,
+          checked_by_name
+        `)
+        .order("sales_date", { ascending: false })
+        .order("uploaded_at", { ascending: false });
+
+      if (error) throw error;
+      state.salesUploads = (data || []).map(enrichSalesUpload);
+    }
+
+    async function loadSalesLinesForUpload(uploadId) {
+      if (!uploadId) {
+        state.salesLines = [];
+        state.salesBatchDeductMap = {};
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from("sales_lines")
+        .select("id, sales_upload_id, product_id, product_barcode, product_name, sold_qty, created_at")
+        .eq("sales_upload_id", uploadId)
+        .order("id", { ascending: true });
+
+      if (error) throw error;
+      state.salesLines = data || [];
+    }
+
+    async function loadSalesBatchDeductions(uploadId) {
+      if (!uploadId) {
+        state.salesBatchDeductMap = {};
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from("stock_movements")
+        .select("batch_id, qty_in, qty_out, movement_type, reference_id, reference_type")
+        .eq("reference_type", "sales_upload")
+        .eq("reference_id", Number(uploadId))
+        .in("movement_type", ["sales_deduct", "sales_deduct_cancel"]);
+
+      if (error) throw error;
+
+      const map = {};
+      (data || []).forEach(item => {
+        const key = String(item.batch_id || "");
+        if (!key) return;
+        const delta = normalizeNumber(item.qty_out) - normalizeNumber(item.qty_in);
+        map[key] = Number(((map[key] || 0) + delta).toFixed(2));
+      });
+
+      state.salesBatchDeductMap = map;
+    }
+
+    async function loadSalesBatchDeductionHistory() {
+      if (!state.salesUploads.length) {
+        state.salesBatchDeductHistoryMap = {};
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from("stock_movements")
+        .select("batch_id, qty_in, qty_out, movement_type, reference_id, reference_type, created_at")
+        .eq("reference_type", "sales_upload")
+        .in("movement_type", ["sales_deduct", "sales_deduct_cancel"]);
+
+      if (error) throw error;
+
+      const uploadMap = {};
+      state.salesUploads.forEach(item => {
+        uploadMap[String(item.id)] = item;
+      });
+
+      const aggregate = {};
+      (data || []).forEach(item => {
+        const batchId = String(item.batch_id || "");
+        const uploadId = String(item.reference_id || "");
+        if (!batchId || !uploadId) return;
+
+        const key = `${batchId}::${uploadId}`;
+        const delta = normalizeNumber(item.qty_out) - normalizeNumber(item.qty_in);
+        if (!aggregate[key]) {
+          aggregate[key] = {
+            batchId,
+            uploadId,
+            qty: 0,
+            createdAt: item.created_at || null
+          };
+        }
+        aggregate[key].qty = Number((aggregate[key].qty + delta).toFixed(2));
+      });
+
+      const historyMap = {};
+      Object.values(aggregate)
+        .filter(item => item.qty > 0)
+        .forEach(item => {
+          const upload = uploadMap[item.uploadId];
+          const salesDate = upload?.sales_date || item.createdAt || "";
+          const entry = {
+            uploadId: item.uploadId,
+            qty: item.qty,
+            salesDate,
+            salesDateText: formatThaiShortDate(salesDate),
+            fileName: upload?.file_name || "-"
+          };
+
+          if (!historyMap[item.batchId]) historyMap[item.batchId] = [];
+          historyMap[item.batchId].push(entry);
+        });
+
+      Object.values(historyMap).forEach(list => {
+        list.sort((a, b) => new Date(a.salesDate || 0).getTime() - new Date(b.salesDate || 0).getTime());
+      });
+
+      state.salesBatchDeductHistoryMap = historyMap;
+    }
+
+    function populateSalesUploadSelect() {
+      const select = $("selectedSalesUpload");
+      if (!select) return;
+
+      if (!canViewSalesFiles()) {
+      select.innerHTML = `<option value="">-- ไม่มีสิทธิ์ดูเอกสาร --</option>`;
+        return;
+      }
+
+      const currentValue = select.value;
+
+      select.innerHTML =
+        `<option value="">-- เลือกเอกสาร --</option>` +
+        state.salesUploads.map(item => `
+          <option value="${item.id}">
+            ${formatDate(item.sales_date)} | ${escapeHtml(item.file_name || "ไม่มีชื่อไฟล์")} | ${escapeHtml(item.status === "processed" ? "ตัดสต๊อกแล้ว" : "รอดำเนินการ")}
+          </option>
+        `).join("");
+
+      if (state.salesUploads.some(item => String(item.id) === String(currentValue))) {
+        select.value = currentValue;
+      }
+    }
+
+    function formatReportDateRange(startDate, endDate) {
+      if (!startDate || !endDate) return "-";
+      return `${formatDate(startDate)} ถึง ${formatDate(endDate)}`;
+    }
+
+    function renderSalesUploadsList() {
+      const wrap = $("salesUploadsList");
+      if (!wrap) return;
+
+      if (!canViewSalesFiles()) {
+        wrap.innerHTML = `<div class="empty-state">บัญชีนี้ไม่มีสิทธิ์ดูรายการเอกสารขาย</div>`;
+        return;
+      }
+
+      if (!state.salesUploads.length) {
+        wrap.innerHTML = `<div class="empty-state">ยังไม่มีเอกสาร</div>`;
+        return;
+      }
+
+      wrap.innerHTML = `
+        <div class="doc-table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>วันที่ขาย</th>
+                <th>ไฟล์</th>
+                <th class="name-col">อัปโหลดโดย</th>
+                <th class="name-col">แก้ไขโดย</th>
+                <th class="name-col">ตรวจนับโดย</th>
+                <th class="status-col">สถานะ</th>
+                <th class="action-col">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.salesUploads.slice(0, 12).map(item => `
+                <tr>
+                  <td>${escapeHtml(formatDate(item.sales_date))}</td>
+                  <td>
+                    <div class="doc-name">${escapeHtml(item.file_name || "-")}</div>
+                    <div class="doc-sub">
+                      ${item.report_date_start && item.report_date_end
+                        ? escapeHtml(formatReportDateRange(item.report_date_start, item.report_date_end))
+                        : "-"}
+                    </div>
+                  </td>
+                  <td>${escapeHtml(item.created_by_name || "-")}</td>
+                  <td>${escapeHtml(item.updated_by_name || item.created_by_name || "-")}</td>
+                  <td>${escapeHtml(item.checked_by_name || "-")}</td>
+                  <td>${getSalesStatusBadge(item.status || "pending")}</td>
+                  <td>
+                    <div class="action-group">
+                      <button type="button" class="btn-info" onclick="selectSalesUpload(${item.id})">เลือก</button>
+                      <button type="button" class="btn-secondary" onclick="openSalesPdf('${escapeHtml(item.file_url || "")}')">เปิด PDF</button>
+                      ${canEditSalesUpload() ? `<button type="button" class="btn-warning" onclick="startEditSalesUpload(${item.id})">แก้ไข</button>` : ``}
+                      ${canProcessSalesUpload() ? `<button type="button" class="btn-info" onclick="selectSalesUpload(${item.id}); setTimeout(autoReadSelectedSalesPdf, 150);">อ่าน PDF</button>` : ``}
+                      ${canProcessSalesUpload() && item.status === "processed" ? `<button type="button" class="btn-warning" onclick="undoSalesDeduction(${item.id})">ยกเลิกตัดสต๊อก</button>` : ``}
+                      ${canDeleteSalesUpload() ? `<button type="button" class="btn-danger" onclick="deleteSalesUpload(${item.id})">ลบ</button>` : ``}
+                    </div>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function resetSalesUploadForm() {
+      $("salesUploadForm").reset();
+      $("salesUploadEditId").value = "";
+      $("salesDate").value = todayString();
+
+      const uploadBtn = $("uploadSalesBtn");
+      if (uploadBtn) {
+        uploadBtn.textContent = "อัปโหลด PDF";
+        uploadBtn.dataset.originalText = "อัปโหลด PDF";
+      }
+
+      const fileLabel = document.querySelector('label[for="salesPdf"]');
+      if (fileLabel) fileLabel.textContent = "ไฟล์ PDF *";
+
+      $("cancelSalesUploadEditBtn")?.classList.add("hidden");
+    }
+
+    function startEditSalesUpload(id) {
+      if (!canEditSalesUpload()) {
+        showMessage("เฉพาะ ADMIN และ MANAGER เท่านั้นที่แก้ไขเอกสารได้", "error");
+        return;
+      }
+
+      const item = getUploadById(id);
+      if (!item) return;
+
+      $("salesUploadEditId").value = item.id;
+      $("salesDate").value = item.sales_date || todayString();
+      $("salesUploadNote").value = item.note_text || "";
+
+      const uploadBtn = $("uploadSalesBtn");
+      if (uploadBtn) {
+        uploadBtn.textContent = "บันทึกการแก้ไข";
+        uploadBtn.dataset.originalText = "บันทึกการแก้ไข";
+      }
+
+      const fileLabel = document.querySelector('label[for="salesPdf"]');
+      if (fileLabel) fileLabel.textContent = "ไฟล์ PDF (ถ้าต้องการเปลี่ยนไฟล์)";
+
+      $("cancelSalesUploadEditBtn")?.classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      showMessage("กำลังแก้ไขเอกสาร: " + (item.file_name || "-"), "info");
+    }
+
+    function cancelSalesUploadEdit() {
+      resetSalesUploadForm();
+      clearMessage();
+    }
+
+    async function uploadSalesPdfAndCreateRecord() {
+      if (state.loading.salesUpload) return;
+      if (!canAddSalesUpload()) {
+        showMessage("เฉพาะ ADMIN และ MANAGER เท่านั้นที่อัปโหลดหรือแก้ไขเอกสารขายได้", "error");
+        return;
+      }
+
+      const editId = $("salesUploadEditId").value;
+      const salesDate = $("salesDate").value;
+      const fileInput = $("salesPdf");
+      const noteText = $("salesUploadNote").value.trim();
+      const currentName = getCurrentDisplayName();
+
+      if (!salesDate) {
+        alert("กรุณาเลือกวันที่ขาย");
+        return;
+      }
+
+      const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (!editId && !file) {
+        alert("กรุณาเลือกไฟล์ PDF");
+        return;
+      }
+      if (file && file.type !== "application/pdf") {
+        alert("กรุณาอัปโหลดไฟล์ PDF เท่านั้น");
+        return;
+      }
+
+      try {
+        state.loading.salesUpload = true;
+        setLoadingButton("uploadSalesBtn", editId ? "กำลังบันทึก..." : "กำลังอัปโหลด...", true);
+        clearMessage();
+
+        let fileName = null;
+        let filePath = null;
+        let fileUrl = null;
+        let reportRange = {
+          report_date_start: null,
+          report_date_end: null
+        };
+
+        const sameDateUpload = getSalesUploadByDate(salesDate, editId);
+        const existing = editId ? getUploadById(editId) : sameDateUpload;
+        const targetId = existing?.id ? String(existing.id) : String(editId || "");
+        let finalTargetId = targetId;
+        const isReplacingSameDay = !editId && !!sameDateUpload;
+        const oldFilePath = existing?.file_path || null;
+        let uploadedNewFile = false;
+
+        if (file) {
+          const cleanName = file.name.replace(/[^\w.\-]+/g, "_");
+          const uploadPath = `daily-sales/${salesDate}/${Date.now()}_${cleanName}`;
+
+          const extractedText = await extractTextFromPdfSource(file);
+          reportRange = extractReportDateRangeFromText(extractedText);
+
+          const { error: uploadError } = await supabaseClient.storage
+            .from(CONFIG.SALES_BUCKET)
+            .upload(uploadPath, file, {
+              cacheControl: "3600",
+              upsert: false
+            });
+
+          if (uploadError) {
+            throw new Error("อัปโหลดไฟล์ไม่สำเร็จ: " + getErrorText(uploadError));
+          }
+
+          const { data: publicData } = supabaseClient.storage
+            .from(CONFIG.SALES_BUCKET)
+            .getPublicUrl(uploadPath);
+
+          fileName = file.name;
+          filePath = uploadPath;
+          fileUrl = publicData?.publicUrl || null;
+          uploadedNewFile = true;
+        } else if (existing) {
+          fileName = existing.file_name;
+          filePath = existing.file_path;
+          fileUrl = existing.file_url;
+          reportRange.report_date_start = existing.report_date_start || null;
+          reportRange.report_date_end = existing.report_date_end || null;
+        }
+
+        if (!targetId) {
+          const fullNote = buildSalesUploadNote(noteText, {
+            createdByName: currentName,
+            updatedByName: currentName
+          });
+
+          const { data, error } = await supabaseClient
+            .from("sales_uploads")
+            .insert([{
+              sales_date: salesDate,
+              file_name: fileName,
+              file_path: filePath,
+              file_url: fileUrl,
+              status: "pending",
+              note: fullNote,
+              report_date_start: reportRange.report_date_start,
+              report_date_end: reportRange.report_date_end,
+              created_by_name: currentName,
+              updated_by_name: currentName
+            }])
+            .select("id")
+            .single();
+
+          if (error) throw error;
+          finalTargetId = data?.id ? String(data.id) : "";
+          showMessage("อัปโหลดเอกสารเรียบร้อย", "success");
+        } else {
+          const fullNote = rebuildSalesUploadNote(existing, noteText, currentName, existing?.checked_by_name || "");
+
+          const { error } = await supabaseClient
+            .from("sales_uploads")
+            .update({
+              sales_date: salesDate,
+              file_name: fileName,
+              file_path: filePath,
+              file_url: fileUrl,
+              status: file ? "pending" : (existing?.status || "pending"),
+              note: fullNote,
+              report_date_start: reportRange.report_date_start,
+              report_date_end: reportRange.report_date_end,
+              updated_by_name: currentName,
+              processed_at: file ? null : existing?.processed_at || null,
+              checked_by_name: file ? null : existing?.checked_by_name || null
+            })
+            .eq("id", targetId);
+
+          if (error) throw error;
+
+          if (file) {
+            const { error: deleteLinesError } = await supabaseClient
+              .from("sales_lines")
+              .delete()
+              .eq("sales_upload_id", targetId);
+
+            if (deleteLinesError) throw deleteLinesError;
+          }
+
+          if (uploadedNewFile && oldFilePath && oldFilePath !== filePath) {
+            await supabaseClient.storage.from(CONFIG.SALES_BUCKET).remove([oldFilePath]);
+          }
+
+          showMessage(
+            isReplacingSameDay
+              ? "อัปโหลดแทนที่ไฟล์เดิมของวันนี้เรียบร้อยแล้ว"
+              : "บันทึกการแก้ไขเรียบร้อย",
+            "success"
+          );
+        }
+
+        await loadSalesUploads();
+        populateSalesUploadSelect();
+        renderSalesUploadsList();
+        if (!finalTargetId) {
+          finalTargetId = String(getSalesUploadByDate(salesDate)?.id || "");
+        }
+        if (finalTargetId) {
+          $("selectedSalesUpload").value = String(finalTargetId);
+          await onChangeSelectedSalesUpload();
+        }
+        resetSalesUploadForm();
+      } catch (error) {
+        console.error(error);
+        showMessage("บันทึกเอกสารไม่สำเร็จ: " + getErrorText(error), "error");
+      } finally {
+        state.loading.salesUpload = false;
+        setLoadingButton("uploadSalesBtn", "กำลังอัปโหลด...", false);
+      }
+    }
+
+    async function fetchPdfAsArrayBuffer(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("โหลดไฟล์ PDF ไม่สำเร็จ");
+      return await response.arrayBuffer();
+    }
+
+    function fileToArrayBuffer(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          resolve(e.target.result);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    async function extractTextFromPdfSource(source) {
+      const pdfjsLib = window.pdfjsLib;
+      if (!pdfjsLib) throw new Error("ยังไม่ได้โหลด pdf.js");
+
+      let arrayBuffer;
+
+      if (source instanceof File) {
+        arrayBuffer = await fileToArrayBuffer(source);
+      } else if (typeof source === "string" && source) {
+        arrayBuffer = await fetchPdfAsArrayBuffer(source);
+      } else {
+        throw new Error("ไม่พบไฟล์ PDF");
+      }
+
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+
+        const lines = [];
+        let currentY = null;
+        let currentLine = [];
+
+        for (const item of textContent.items) {
+          const str = String(item.str || "").trim();
+          if (!str) continue;
+
+          const y = Math.round(item.transform[5]);
+
+          if (currentY === null) currentY = y;
+
+          if (Math.abs(y - currentY) > 2) {
+            if (currentLine.length) lines.push(currentLine.join(" "));
+            currentLine = [str];
+            currentY = y;
+          } else {
+            currentLine.push(str);
+          }
+        }
+
+        if (currentLine.length) lines.push(currentLine.join(" "));
+        fullText += "\n" + lines.join("\n");
+      }
+
+      return fullText;
+    }
+
+    function cleanExtractedLines(text) {
+      return String(text || "")
+        .split(/\n+/)
+        .map(line => line.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+    }
+
+    function normalizeThaiPdfText(text) {
+      return String(text || "")
+        .replace(/[|]/g, " ")
+        .replace(/\u00A0/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function isNoiseLine(line) {
+      const badPatterns = [
+        "เธเธฃเธดเธฉเธฑเธ— เนเธชเธ เธ“เธญเธตเธชเน€เธ—เธดเธฃเนเธเน€เธ—เธฃเธ”เธ”เธด",
+        "เธฃเธฒเธขเธเธฒเธเธชเธฃเธธเธเนเธเธเธฒเธขเธชเธ” เธ•เธฒเธกเธชเธดเธเธเนเธฒ",
+        "เธซเธเนเธฒเธ—เธต",
+        "เธงเธดเธเธตเธเธฑเธ”เธชเนเธเธชเธดเธเธเนเธฒ",
+        "เน€เธฅเธเธ—เธต",
+        "เธฃเธซเธฑเธชเธฅเธนเธเธซเธเธต",
+        "เธฃเธซเธฑเธชเนเธเธฃเธเธเธฒเธฃ",
+        "เธเธฃเธฐเน€เธ เธ—เน€เธญเธเธชเธฒเธฃ",
+        "เธฃเธซเธฑเธชเธเธท",
+        "เธเธฅเธฑเธเธชเธดเธเธเนเธฒ",
+        "เธ•เนเธฒเนเธซเธเนเธเน€เธเนเธเธชเธดเธเธเนเธฒ",
+        "เธเธฃเธฐเน€เธ เธ—เธชเธดเธเธเนเธฒ",
+        "เธซเธกเธงเธ”เธชเธดเธเธเนเธฒ",
+        "เธฃเธฐเธซเธงเนเธฒเธเธงเธฑเธเธ—เธต",
+        "เน€เธเธท",
+        "เนเธเธเธ",
+        "เธขเธต",
+        "เธชเธฒเธเธฒ",
+        "เธเธฃเธฐเน€เธ เธ—เธฅเธนเธเธซเธเธต",
+        "เธงเธฑเธเธ—เธต เธเธฃเธเธเนเธฒเธซเธเธ”เธฃเธฑเธ",
+        "เธฃเธซเธฑเธชเธชเธดเธเธเนเธฒ เธซเธเนเธงเธข",
+        "เธขเธญเธ”เน€เธเธดเธ",
+        "เธกเธนเธฅเธเนเธฒเธชเธธเธ—เธเธด",
+        "เธเนเธฒเธเธงเธ",
+        "เนเธ–เธก",
+        "เธเธท",
+        "เธเธฒเธข",
+        "เธกเธนเธฅเธเนเธฒเธชเธดเธเธเนเธฒ",
+        "เธฃเธฒเธเธฒ @",
+        "เนเธกเนเธฃเธงเธกเธ เธฒเธฉเธต",
+        "เธ—เนเธฒเธขเธเธดเธฅ",
+        "เธซเธฅเธฑเธเธฅเธ” / เธฃเธฒเธขเธเธฒเธฃ",
+        "เธเธดเธกเธเนเธงเธฑเธเธ—เธต",
+        "เธฃเธฒเธขเธเธฒเธเนเธ”เธข",
+        "เนเธเนเธกเธฃเธฒเธขเธเธฒเธ",
+        "เธฃเธงเธก เธ—เธฑ"
+      ];
+      return badPatterns.some(p => line.includes(p));
+    }
+
+    function buildLogicalSalesLines(text) {
+      const rawLines = cleanExtractedLines(text)
+        .map(normalizeThaiPdfText)
+        .filter(Boolean)
+        .filter(line => !isNoiseLine(line));
+
+      const logicalLines = [];
+      let current = "";
+
+      for (const line of rawLines) {
+        const isNewItem = /^-?\s*\d{8,12}\b/.test(line);
+
+        if (isNewItem) {
+          if (current) logicalLines.push(current.trim());
+          current = line;
+        } else {
+          if (current) current += " " + line;
+        }
+      }
+
+      if (current) logicalLines.push(current.trim());
+      return logicalLines;
+    }
+
+    function parseSalesPdfReportLine(line) {
+      const text = normalizeThaiPdfText(line);
+      if (!text) return null;
+
+      const match = text.match(/^-?\s*(\d{8,12})\s+(.+)$/);
+      if (!match) return null;
+
+      const productCode = match[1];
+      const rest = match[2];
+
+      const unitMatch = rest.match(
+        /(เธซเธตเธ|เธซเนเธญ|เนเธเนเธ|เนเธเธเน|เธ–เธธเธ|เธฅเธฑเธ|เธเธฅเนเธญเธ|เธเธดเนเธ|เธเธฃเธฐเธเนเธญเธ|เธ–เธฒเธ”|เธเธฃเธฐเธชเธญเธ|เธเธญเธ)\s*(?:x\s*)?\d+/i
+      );
+      if (!unitMatch) return null;
+
+      const unitText = unitMatch[0];
+      const idx = rest.indexOf(unitText);
+      if (idx === -1) return null;
+
+      const productName = rest.slice(0, idx).trim();
+      const afterUnit = rest.slice(idx + unitText.length).trim();
+
+      const qtyMatch = afterUnit.match(/^(\d+(?:\.\d+)?)/);
+      if (!qtyMatch) return null;
+
+      const soldQty = Number(qtyMatch[1]);
+      if (Number.isNaN(soldQty) || soldQty <= 0) return null;
+
+      return {
+        product_code: productCode,
+        product_name_from_pdf: productName,
+        sold_qty: soldQty
+      };
+    }
+
+    function mergeParsedSalesResults(rows) {
+      const map = new Map();
+
+      for (const row of rows) {
+        const key = String(row.product_code).trim();
+
+        if (!map.has(key)) {
+          map.set(key, {
+            product_code: row.product_code,
+            product_barcode: row.product_barcode || row.product_code,
+            product_name: row.product_name,
+            product_id: row.product_id || null,
+            sold_qty: 0,
+            found_in_system: row.found_in_system !== false
+          });
+        }
+
+        map.get(key).sold_qty += normalizeNumber(row.sold_qty);
+
+        if (row.found_in_system === false) {
+          map.get(key).found_in_system = false;
+        }
+      }
+
+      return Array.from(map.values()).map(item => ({
+        ...item,
+        sold_qty: Number(item.sold_qty.toFixed(2))
+      }));
+    }
+
+    function parseSalesLinesFromText(text) {
+      const logicalLines = buildLogicalSalesLines(text);
+      const parsedRows = [];
+
+      for (const line of logicalLines) {
+        const parsed = parseSalesPdfReportLine(line);
+        if (!parsed) continue;
+
+        const matchedProduct = state.products.find(p =>
+          String(p.product_code || "").trim() === parsed.product_code ||
+          String(p.barcode || "").trim() === parsed.product_code
+        );
+
+        parsedRows.push({
+          product_code: parsed.product_code,
+          product_barcode: matchedProduct
+            ? (matchedProduct.product_code || matchedProduct.barcode || parsed.product_code)
+            : parsed.product_code,
+          product_name: matchedProduct
+            ? (matchedProduct.product_name || parsed.product_name_from_pdf)
+            : parsed.product_name_from_pdf,
+          product_id: matchedProduct ? Number(matchedProduct.id) : null,
+          sold_qty: parsed.sold_qty,
+          found_in_system: !!matchedProduct
+        });
+      }
+
+      return mergeParsedSalesResults(parsedRows);
+    }
+
+    function openPdfPreviewModal(lines) {
+      state.pdfPreviewLines = Array.isArray(lines)
+        ? lines.map(item => ({
+            ...item,
+            sold_qty: Number(normalizeNumber(item.sold_qty).toFixed(2)),
+            original_sold_qty: Number(normalizeNumber(item.sold_qty).toFixed(2))
+          }))
+        : [];
+
+      renderPdfPreviewTable();
+      $("pdfPreviewModalBackdrop").classList.add("show");
+    }
+
+    function renderPdfPreviewTable() {
+      const tbody = $("pdfPreviewTableBody");
+      const totalQty = state.pdfPreviewLines.reduce(
+        (sum, item) => sum + normalizeNumber(item.sold_qty),
+        0
+      );
+
+      $("pdfPreviewCount").textContent = state.pdfPreviewLines.length;
+      $("pdfPreviewQty").textContent = formatQty(totalQty);
+
+      if (!state.pdfPreviewLines.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="empty-state">ไม่พบรายการขาย</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = state.pdfPreviewLines.map((item, index) => {
+        const originalQty = normalizeNumber(item.original_sold_qty);
+        const currentQty = normalizeNumber(item.sold_qty);
+        const edited = Number(currentQty.toFixed(2)) !== Number(originalQty.toFixed(2));
+
+        return `
+          <tr class="${item.found_in_system === false ? "manager-flag-row" : ""} ${edited ? "pdf-preview-row-edited" : ""}">
+            <td>${escapeHtml(item.product_barcode || item.product_code || "-")}</td>
+            <td>${escapeHtml(item.product_name || "-")}</td>
+            <td>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                class="pdf-preview-qty-input"
+                value="${escapeHtml(formatQty(item.sold_qty))}"
+                oninput="updatePdfPreviewQty(${index}, this.value)"
+              >
+            </td>
+            <td>
+              ${item.found_in_system === false
+                ? `<span class="status-badge status-expired">ไม่พบในระบบ</span>`
+                : `<span class="status-badge status-safe">พบในระบบ</span>`}
+              ${edited
+                ? `<div style="margin-top:6px;"><span class="status-badge status-warning">แก้ไขแล้ว</span></div>`
+                : ``}
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function updatePdfPreviewQty(index, value) {
+      if (!state.pdfPreviewLines[index]) return;
+
+      let qty = Number(value);
+      if (Number.isNaN(qty) || qty < 0) qty = 0;
+
+      state.pdfPreviewLines[index].sold_qty = Number(qty.toFixed(2));
+      renderPdfPreviewTable();
+    }
+
+    function closePdfPreviewModal() {
+      $("pdfPreviewModalBackdrop").classList.remove("show");
+    }
+
+    function convertThaiDateToISO(thaiDateText) {
+      const text = String(thaiDateText || "").trim();
+      const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (!match) return null;
+
+      const dd = match[1];
+      const mm = match[2];
+      let yyyy = Number(match[3]);
+
+      if (yyyy > 2400) yyyy -= 543;
+
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function extractReportDateRangeFromText(text) {
+      const normalized = String(text || "").replace(/\s+/g, " ").trim();
+
+      const match = normalized.match(
+        /เธฃเธฐเธซเธงเนเธฒเธเธงเธฑเธเธ—เธตเน\s*[:๏ผ]?\s*(\d{2}\/\d{2}\/\d{4})\s*เธ–เธถเธ\s*(\d{2}\/\d{2}\/\d{4})/
+      );
+
+      if (!match) {
+        return {
+          report_date_start: null,
+          report_date_end: null,
+          report_date_text: "-"
+        };
+      }
+
+      const startText = match[1];
+      const endText = match[2];
+
+      return {
+        report_date_start: convertThaiDateToISO(startText),
+        report_date_end: convertThaiDateToISO(endText),
+        report_date_text: `${startText} เธ–เธถเธ ${endText}`
+      };
+    }
+
+    async function saveAndProcessFromPdfPreview() {
+      if (!canProcessSalesUpload()) {
+        showMessage("เฉพาะ ADMIN และ MANAGER เท่านั้นที่บันทึกและตัดสต๊อกจาก PDF ได้", "error");
+        return;
+      }
+
+      const uploadId = $("selectedSalesUpload").value;
+
+      if (!uploadId) {
+        alert("กรุณาเลือกเอกสารก่อน");
+        return;
+      }
+
+      const cleanedLines = (state.pdfPreviewLines || [])
+        .map(item => ({
+          ...item,
+          sold_qty: Number(normalizeNumber(item.sold_qty).toFixed(2))
+        }))
+        .filter(item => item.sold_qty > 0);
+
+      if (!cleanedLines.length) {
+        alert("กรุณาระบุจำนวนขายมากกว่า 0 อย่างน้อย 1 รายการ");
+        return;
+      }
+
+      const missingItems = cleanedLines
+        .map(item => `${item.product_barcode || item.product_code || "-"} - ${item.product_name || "-"}`);
+
+      if (missingItems.length) {
+        alert("ยังมีสินค้าที่ไม่พบในระบบ:\n" + missingItems.join("\n"));
+        return;
+      }
+
+      try {
+        setLoadingButton("pdfPreviewSaveAndProcessBtn", "กำลังบันทึก...", true);
+        clearMessage();
+
+        state.salesLines = cleanedLines;
+
+        const dbLines = cleanedLines.map(item => ({
+          sales_upload_id: Number(uploadId),
+          product_id: Number(item.product_id),
+          product_barcode: item.product_barcode || item.product_code || "",
+          product_name: item.product_name || "",
+          sold_qty: Number(normalizeNumber(item.sold_qty).toFixed(2))
+        }));
+
+        const { error: deleteError } = await supabaseClient
+          .from("sales_lines")
+          .delete()
+          .eq("sales_upload_id", uploadId);
+
+        if (deleteError) throw deleteError;
+
+        const { error: insertError } = await supabaseClient
+          .from("sales_lines")
+          .insert(dbLines);
+
+        if (insertError) throw insertError;
+
+        closePdfPreviewModal();
+
+        await loadSalesLinesForUpload(uploadId);
+        await processSalesUpload();
+      } catch (error) {
+        console.error(error);
+        showMessage("บันทึกจากตารางตรวจสอบไม่สำเร็จ: " + getErrorText(error), "error");
+      } finally {
+        setLoadingButton("pdfPreviewSaveAndProcessBtn", "กำลังบันทึก...", false);
+      }
+    }
+
+    async function autoReadSelectedSalesPdf() {
+      if (!canProcessSalesUpload()) {
+        showMessage("เฉพาะ ADMIN และ MANAGER เท่านั้นที่อ่าน PDF ได้", "error");
+        return;
+      }
+
+      const uploadId = $("selectedSalesUpload").value;
+      const fileInput = $("salesPdf");
+      let pdfSource = null;
+
+      try {
+        setLoadingButton("autoReadPdfBtn", "กำลังอ่าน...", true);
+        clearMessage();
+
+        if (fileInput.files && fileInput.files[0]) {
+          pdfSource = fileInput.files[0];
+        } else if (uploadId) {
+          const upload = getUploadById(uploadId);
+          if (!upload || !upload.file_url) throw new Error("ไม่พบไฟล์ PDF");
+          pdfSource = upload.file_url;
+        } else {
+          throw new Error("กรุณาเลือกไฟล์ PDF หรือเลือกเอกสารก่อน");
+        }
+
+        const extractedText = await extractTextFromPdfSource(pdfSource);
+        const parsedLines = parseSalesLinesFromText(extractedText);
+        if (!parsedLines.length) {
+          throw new Error("ยังจับรหัสสินค้าและยอดขายจากรายงานนี้ไม่ได้");
+        }
+
+        openPdfPreviewModal(parsedLines);
+        showMessage(`อ่าน PDF สำเร็จ (${parsedLines.length} รายการ) กรุณาตรวจสอบก่อนยืนยัน`, "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("อ่าน PDF ไม่สำเร็จ: " + getErrorText(error), "error");
+      } finally {
+        setLoadingButton("autoReadPdfBtn", "กำลังอ่าน...", false);
+      }
+    }
+
+    async function insertStockMovement(entry) {
+      const { error } = await supabaseClient
+        .from("stock_movements")
+        .insert([entry]);
+
+      if (error) throw error;
+    }
+
+    async function processSalesUploadById(uploadId) {
+      if (!canProcessSalesUpload()) {
+        showMessage("เฉพาะ ADMIN และ MANAGER เท่านั้นที่ตัดสต๊อกได้", "error");
+        return;
+      }
+
+      $("selectedSalesUpload").value = uploadId;
+      await onChangeSelectedSalesUpload();
+      await processSalesUpload();
+    }
+
+    async function processSalesUpload() {
+      if (state.loading.salesProcess) return;
+      if (!canProcessSalesUpload()) {
+        showMessage("เฉพาะ ADMIN และ MANAGER เท่านั้นที่ตัดสต๊อกได้", "error");
+        return;
+      }
+
+      const uploadId = $("selectedSalesUpload").value;
+      if (!uploadId) return alert("กรุณาเลือกเอกสารก่อน");
+
+      try {
+        state.loading.salesProcess = true;
+        clearMessage();
+
+        await loadBatches();
+        await loadSalesUploads();
+
+        const upload = getUploadById(uploadId);
+        if (!upload) throw new Error("ไม่พบเอกสาร");
+        if (upload.status === "processed") throw new Error("เอกสารนี้ถูกประมวลผลแล้ว");
+
+        const mergedLines = state.salesLines.length
+          ? state.salesLines.map(item => ({
+              product_id: item.product_id ? Number(item.product_id) : null,
+              product_barcode: item.product_barcode,
+              product_name: item.product_name,
+              sold_qty: Number(normalizeNumber(item.sold_qty).toFixed(2))
+            }))
+          : [];
+
+        if (!mergedLines.length) throw new Error("เอกสารนี้ยังไม่มีรายการขาย");
+
+        const dbLines = mergedLines.map(item => ({
+          sales_upload_id: Number(uploadId),
+          product_id: item.product_id ? Number(item.product_id) : null,
+          product_barcode: item.product_barcode,
+          product_name: item.product_name,
+          sold_qty: Number(item.sold_qty.toFixed(2))
+        }));
+
+        const { error: deleteError } = await supabaseClient
+          .from("sales_lines")
+          .delete()
+          .eq("sales_upload_id", uploadId);
+        if (deleteError) throw deleteError;
+
+        const { error: insertError } = await supabaseClient
+          .from("sales_lines")
+          .insert(dbLines);
+        if (insertError) throw insertError;
+
+        const { enoughLines, insufficientLines } = splitSalesLinesByStock(mergedLines);
+
+        if (!enoughLines.length) {
+          alert(
+            "เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธ•เธฑเธ”เธชเธ•เนเธญเธเนเธ”เน เน€เธเธฃเธฒเธฐเธ—เธธเธเธฃเธฒเธขเธเธฒเธฃเธชเธ•เนเธญเธเนเธกเนเธเธญ\n\n" +
+            insufficientLines
+              .map(item =>
+                `${item.product_name} | เธฃเธซเธฑเธช ${item.product_barcode} | เธ•เนเธญเธเธเธฒเธฃ ${formatQty(item.sold_qty)} | เธกเธต ${formatQty(item.available_qty)}`
+              )
+              .join("\n")
+          );
+          return;
+        }
+
+        const preview = enoughLines.map(line => {
+          const batches = getAvailableBatchesByBarcode(line.product_barcode);
+          let remain = normalizeNumber(line.sold_qty);
+          const parts = [];
+
+          for (const batch of batches) {
+            if (remain <= 0) break;
+            const deductQty = Math.min(normalizeNumber(batch.quantity_remaining), remain);
+            if (deductQty > 0) {
+              parts.push(`${batch.batch_no}=${formatQty(deductQty)}`);
+              remain -= deductQty;
+            }
+          }
+
+          return `- ${line.product_name}: ${parts.join(", ")}`;
+        });
+
+        const alertText = insufficientLines.length
+          ? (
+              "\n\nเธฃเธฒเธขเธเธฒเธฃเธ•เนเธญเนเธเธเธตเนเธชเธ•เนเธญเธเนเธกเนเธเธญ เธฃเธฐเธเธเธเธฐเธขเธฑเธเนเธกเนเธ•เธฑเธ”:\n" +
+              insufficientLines
+                .map(item =>
+                  `${item.product_name} | เธฃเธซเธฑเธช ${item.product_barcode} | เธ•เนเธญเธเธเธฒเธฃ ${formatQty(item.sold_qty)} | เธกเธต ${formatQty(item.available_qty)}`
+                )
+                .join("\n")
+            )
+          : "";
+
+        const confirmed = confirm(
+          "เธขเธทเธเธขเธฑเธเธ•เธฑเธ”เธชเธ•เนเธญเธเน€เธเธเธฒเธฐเธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเธชเธ•เนเธญเธเธเธญ?\n\n" +
+          preview.slice(0, 15).join("\n") +
+          (preview.length > 15 ? `\n... เนเธฅเธฐเธญเธตเธ ${preview.length - 15} เธฃเธฒเธขเธเธฒเธฃ` : "") +
+          alertText
+        );
+        if (!confirmed) return;
+
+        const processResults = [];
+        for (const line of enoughLines) {
+          const result = await deductSingleSalesLineByFEFO(line, upload);
+          processResults.push(result);
+        }
+
+        const summaryProcessed = processResults
+          .map(r => `${r.product_name} | เธเธฒเธข ${formatQty(r.sold_qty)} | เธ•เธฑเธ” ${r.batches.join(", ")}`)
+          .join("\n");
+
+        const summarySkipped = insufficientLines
+          .map(item =>
+            `${item.product_name} | เธฃเธซเธฑเธช ${item.product_barcode} | เธ•เนเธญเธเธเธฒเธฃ ${formatQty(item.sold_qty)} | เธกเธต ${formatQty(item.available_qty)} | เธเนเธฒเธก`
+          )
+          .join("\n");
+
+        const uploadNoteParts = [
+          `[${timestampThai()}] เธ•เธฑเธ”เธชเธ•เนเธญเธเนเธฅเนเธง`,
+          summaryProcessed
+        ];
+
+        if (summarySkipped) {
+          uploadNoteParts.push(`[เธฃเธฒเธขเธเธฒเธฃเธชเธ•เนเธญเธเนเธกเนเธเธญ]`);
+          uploadNoteParts.push(summarySkipped);
+        }
+
+        const mergedNote = appendNote(upload.note || "", uploadNoteParts.join("\n"));
+
+        const { error: uploadStatusError } = await supabaseClient
+          .from("sales_uploads")
+          .update({
+            status: "processed",
+            processed_at: new Date().toISOString(),
+            note: mergedNote
+          })
+          .eq("id", uploadId);
+
+        if (uploadStatusError) throw uploadStatusError;
+
+        await refreshAll();
+        await onChangeSelectedSalesUpload();
+
+        if (insufficientLines.length) {
+          alert(
+            "เธ•เธฑเธ”เธชเธ•เนเธญเธเธชเธณเน€เธฃเนเธเน€เธเธเธฒเธฐเธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเธชเธ•เนเธญเธเธเธญ\n\n" +
+            "เธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเธ•เธฑเธ”เนเธ”เน:\n" +
+            processResults.map(r => `${r.product_name}: ${formatQty(r.sold_qty)}`).join("\n") +
+            "\n\nเธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเธชเธ•เนเธญเธเนเธกเนเธเธญ:\n" +
+            insufficientLines
+              .map(item =>
+                `${item.product_name} | เธฃเธซเธฑเธช ${item.product_barcode} | เธ•เนเธญเธเธเธฒเธฃ ${formatQty(item.sold_qty)} | เธกเธต ${formatQty(item.available_qty)}`
+              )
+              .join("\n")
+          );
+        } else {
+          showMessage(
+            "เธ•เธฑเธ”เธชเธ•เนเธญเธเธชเธณเน€เธฃเนเธ\n" +
+            processResults.map(r => `${r.product_name}: ${formatQty(r.sold_qty)}`).join("\n"),
+            "success"
+          );
+        }
+      } catch (error) {
+        console.error(error);
+        showMessage("เธ•เธฑเธ”เธชเธ•เนเธญเธเนเธกเนเธชเธณเน€เธฃเนเธ: " + getErrorText(error), "error");
+      } finally {
+        state.loading.salesProcess = false;
+      }
+    }
+
+    async function undoSalesDeduction(uploadId) {
+      if (!canProcessSalesUpload()) {
+        showMessage("เฉพาะ ADMIN และ MANAGER เท่านั้นที่ยกเลิกการตัดสต๊อกได้", "error");
+        return;
+      }
+
+      const upload = getUploadById(uploadId);
+      if (!upload) {
+        showMessage("ไม่พบเอกสารที่ต้องการยกเลิก", "error");
+        return;
+      }
+
+      if (upload.status !== "processed") {
+        showMessage("เอกสารนี้ยังไม่ได้ตัดสต๊อก", "error");
+        return;
+      }
+
+      if (!confirm(`ต้องการยกเลิกตัดสต๊อกของไฟล์ ${upload.file_name || "-"} ใช่หรือไม่?`)) return;
+
+      try {
+        clearMessage();
+
+        const { data: movementRows, error: movementError } = await supabaseClient
+          .from("stock_movements")
+          .select("id, batch_id, product_id, qty_in, qty_out, movement_type")
+          .eq("reference_type", "sales_upload")
+          .eq("reference_id", Number(uploadId))
+          .in("movement_type", ["sales_deduct", "sales_deduct_cancel"]);
+
+        if (movementError) throw movementError;
+
+        const restoreMap = {};
+        (movementRows || []).forEach(item => {
+          const batchId = Number(item.batch_id || 0);
+          if (!batchId) return;
+          const delta = normalizeNumber(item.qty_out) - normalizeNumber(item.qty_in);
+          restoreMap[batchId] = Number(((restoreMap[batchId] || 0) + delta).toFixed(2));
+        });
+
+        const restoreEntries = Object.entries(restoreMap)
+          .map(([batchId, qty]) => ({ batchId: Number(batchId), qty: Number(qty) }))
+          .filter(item => item.qty > 0);
+
+        if (!restoreEntries.length) {
+          showMessage("ไม่พบยอดตัดสต๊อกที่ต้องคืนกลับ", "error");
+          return;
+        }
+
+        const { data: batchRows, error: batchError } = await supabaseClient
+          .from("batches")
+          .select("id, product_id, batch_no, quantity_remaining, note, expiry_date")
+          .in("id", restoreEntries.map(item => item.batchId));
+
+        if (batchError) throw batchError;
+
+        for (const entry of restoreEntries) {
+          const batch = (batchRows || []).find(row => Number(row.id) === Number(entry.batchId));
+          if (!batch) continue;
+
+          const newRemaining = Number((normalizeNumber(batch.quantity_remaining) + normalizeNumber(entry.qty)).toFixed(2));
+          const noteLine = `[${timestampThai()}] ยกเลิกตัดสต๊อกจากไฟล์ ${upload.file_name || "-"} | คืนกลับ ${formatQty(entry.qty)}`;
+
+          const { error: updateBatchError } = await supabaseClient
+            .from("batches")
+            .update({
+              quantity_remaining: newRemaining,
+              note: appendNote(batch.note, noteLine),
+              status: getStatus(calculateDaysLeft(batch.expiry_date)),
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", batch.id);
+
+          if (updateBatchError) throw updateBatchError;
+
+          await insertStockMovement({
+            batch_id: batch.id,
+            product_id: batch.product_id,
+            movement_type: "sales_deduct_cancel",
+            qty_in: entry.qty,
+            qty_out: 0,
+            balance_after: newRemaining,
+            reference_type: "sales_upload",
+            reference_id: Number(uploadId),
+            note: `ยกเลิกตัดสต๊อกจากไฟล์: ${upload.file_name || "-"}`
+          });
+        }
+
+        const undoNote = appendNote(upload.note || "", `[${timestampThai()}] ยกเลิกตัดสต๊อกแล้ว`);
+        const { error: uploadError } = await supabaseClient
+          .from("sales_uploads")
+          .update({
+            status: "pending",
+            processed_at: null,
+            note: undoNote
+          })
+          .eq("id", uploadId);
+
+        if (uploadError) throw uploadError;
+
+        await refreshAll();
+        $("selectedSalesUpload").value = String(uploadId);
+        await onChangeSelectedSalesUpload();
+        showMessage("ยกเลิกตัดสต๊อกเรียบร้อยแล้ว", "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("ยกเลิกตัดสต๊อกไม่สำเร็จ: " + getErrorText(error), "error");
+      }
+    }
+
+    async function deductSingleSalesLineByFEFO(line, upload) {
+      const targetQty = normalizeNumber(line.sold_qty);
+      let remainingToDeduct = targetQty;
+      let deductedTotal = 0;
+
+      const batches = getAvailableBatchesByBarcode(line.product_barcode);
+      if (!batches.length) {
+        throw new Error(`เนเธกเนเธเธเธฅเนเธญเธ•เธชเธณเธซเธฃเธฑเธเธชเธดเธเธเนเธฒ ${line.product_name}`);
+      }
+
+      const totalAvailable = batches.reduce(
+        (sum, batch) => sum + normalizeNumber(batch.quantity_remaining),
+        0
+      );
+
+      if (totalAvailable < targetQty) {
+        throw new Error(`เธชเธ•เนเธญเธเธชเธดเธเธเนเธฒ ${line.product_name} เนเธกเนเธเธญ | เธ•เนเธญเธเธเธฒเธฃ ${formatQty(targetQty)} | เธกเธต ${formatQty(totalAvailable)}`);
+      }
+
+      const deductionLog = [];
+
+      for (const batch of batches) {
+        if (remainingToDeduct <= 0) break;
+
+        const currentRemaining = normalizeNumber(batch.quantity_remaining);
+        if (currentRemaining <= 0) continue;
+
+        const deductQty = Math.min(currentRemaining, remainingToDeduct);
+        if (deductQty <= 0) continue;
+
+        const newRemaining = Number((currentRemaining - deductQty).toFixed(2));
+
+        const salesNote =
+          `[${timestampThai()}] เธ•เธฑเธ”เธเธฒเธ PDF ${upload.file_name || "-"} | ` +
+          `เธเธฒเธข ${formatQty(deductQty)} | เธเนเธญเธ ${formatQty(currentRemaining)} | เธซเธฅเธฑเธ ${formatQty(newRemaining)}`;
+
+        const newNote = appendNote(batch.note, salesNote);
+
+        const { error: updateError } = await supabaseClient
+          .from("batches")
+          .update({
+            quantity_remaining: newRemaining,
+            note: newNote,
+            status: getStatus(calculateDaysLeft(batch.expiry_date)),
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", batch.id);
+
+        if (updateError) throw updateError;
+
+        await insertStockMovement({
+          batch_id: batch.id,
+          product_id: batch.product_id,
+          movement_type: "sales_deduct",
+          qty_in: 0,
+          qty_out: deductQty,
+          balance_after: newRemaining,
+          reference_type: "sales_upload",
+          reference_id: Number(upload.id),
+          note: `เธ•เธฑเธ”เธเธฒเธ PDF: ${upload.file_name || "-"} | ${line.product_name || "-"}`
+        });
+
+        batch.quantity_remaining = newRemaining;
+        batch.note = newNote;
+
+        deductedTotal += deductQty;
+        remainingToDeduct -= deductQty;
+
+        deductedTotal = Number(deductedTotal.toFixed(2));
+        remainingToDeduct = Number(remainingToDeduct.toFixed(2));
+
+        deductionLog.push(`${batch.batch_no} = ${formatQty(deductQty)}`);
+      }
+
+      if (remainingToDeduct !== 0 || deductedTotal !== targetQty) {
+        throw new Error(`เธขเธญเธ”เธ•เธฑเธ”เธเธญเธ ${line.product_name} เนเธกเนเธ•เธฃเธเธขเธญเธ”เธเธฒเธข | เธเธฒเธข ${formatQty(targetQty)} | เธ•เธฑเธ”เนเธ”เน ${formatQty(deductedTotal)}`);
+      }
+
+      return {
+        product_name: line.product_name,
+        sold_qty: targetQty,
+        deducted_total: deductedTotal,
+        batches: deductionLog
+      };
+    }
+
+    function selectSalesUpload(id) {
+      if (!canViewSalesFiles()) {
+        showMessage("บัญชี USER ไม่มีสิทธิ์ดูเอกสารขาย", "error");
+        return;
+      }
+
+      $("selectedSalesUpload").value = id;
+      onChangeSelectedSalesUpload();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function deleteSalesUpload(id) {
+      if (!canDeleteSalesUpload()) {
+        showMessage("เฉพาะ MANAGER เท่านั้นที่ลบเอกสารได้", "error");
+        return;
+      }
+
+      const item = getUploadById(id);
+      if (!item) return;
+
+      if (!confirm(`ต้องการลบเอกสาร ${item.file_name || "-"} ใช่หรือไม่?`)) return;
+
+      try {
+        await supabaseClient.from("sales_lines").delete().eq("sales_upload_id", id);
+
+        const { error } = await supabaseClient
+          .from("sales_uploads")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+
+        if (item.file_path) {
+          await supabaseClient.storage.from(CONFIG.SALES_BUCKET).remove([item.file_path]);
+        }
+
+        if (String($("selectedSalesUpload").value) === String(id)) {
+          $("selectedSalesUpload").value = "";
+        }
+
+        await refreshAll();
+        resetSalesUploadForm();
+        showMessage("ลบเอกสารเรียบร้อยแล้ว", "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("ลบเอกสารไม่สำเร็จ: " + getErrorText(error), "error");
+      }
+    }
+
+    function openSalesPdf(url) {
+      if (!canViewSalesFiles()) {
+        showMessage("บัญชี USER ไม่มีสิทธิ์เปิดไฟล์ขาย", "error");
+        return;
+      }
+
+      if (!url) {
+        alert("ไม่พบ URL ของ PDF");
+        return;
+      }
+
+      window.open(url, "_blank");
+    }
+
+    async function onChangeSelectedSalesUpload() {
+      if (!canViewSalesFiles()) {
+        $("salesLineCount").textContent = "0";
+        $("salesLineQtyTotal").textContent = "0";
+        $("salesUploadStatusLabel").textContent = "-";
+        $("detailReportDateRange").textContent = "-";
+        state.salesBatchDeductMap = {};
+        renderBatches();
+        return;
+      }
+
+      const uploadId = $("selectedSalesUpload").value;
+      if (!uploadId) {
+        $("salesLineCount").textContent = "0";
+        $("salesLineQtyTotal").textContent = "0";
+        $("salesUploadStatusLabel").textContent = "-";
+        $("detailReportDateRange").textContent = "-";
+        state.salesBatchDeductMap = {};
+        renderBatches();
+        return;
+      }
+
+      try {
+        await loadSalesLinesForUpload(uploadId);
+        await loadSalesBatchDeductions(uploadId);
+        const upload = getUploadById(uploadId);
+
+        const lineCount = state.salesLines.length;
+        const totalQty = state.salesLines.reduce((sum, item) => sum + normalizeNumber(item.sold_qty), 0);
+
+        $("salesLineCount").textContent = lineCount;
+        $("salesLineQtyTotal").textContent = formatQty(totalQty);
+        $("salesUploadStatusLabel").textContent = upload?.status === "processed" ? "ตัดสต๊อกแล้ว" : "รอดำเนินการ";
+        $("detailReportDateRange").textContent = upload
+          ? formatReportDateRange(upload.report_date_start, upload.report_date_end)
+          : "-";
+        renderBatches();
+      } catch (error) {
+        console.error(error);
+        showMessage("โหลดรายการขายไม่สำเร็จ: " + getErrorText(error), "error");
+      }
+    }
+
+    async function showInsufficientDetail(uploadId) {
+      if (!canViewSalesFiles()) {
+        showMessage("บัญชี USER ไม่มีสิทธิ์ดูรายละเอียดเอกสารขาย", "error");
+        return;
+      }
+
+      try {
+        clearMessage();
+
+        const { data, error } = await supabaseClient
+          .from("sales_lines")
+          .select("*")
+          .eq("sales_upload_id", uploadId);
+
+        if (error) throw error;
+
+        if (!data || !data.length) {
+          alert("ไม่มีรายการขาย");
+          return;
+        }
+
+        const { insufficientLines } = splitSalesLinesByStock(data);
+        renderInsufficientTable(insufficientLines);
+
+        $("insufficientModalBackdrop").classList.add("show");
+      } catch (error) {
+        console.error(error);
+        showMessage("โหลดรายละเอียดไม่สำเร็จ: " + getErrorText(error), "error");
+      }
+    }
+
+    function renderInsufficientTable(lines) {
+      const tbody = $("insufficientTableBody");
+
+      if (!lines.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="empty-state">โ… เธชเธ•เนเธญเธเธเธญเธ—เธฑเนเธเธซเธกเธ”</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = lines.map(item => `
+        <tr class="line-item-missing">
+          <td>${escapeHtml(item.product_barcode)}</td>
+          <td>${escapeHtml(item.product_name)}</td>
+          <td>${formatQty(item.sold_qty)}</td>
+          <td>${formatQty(item.available_qty)}</td>
+          <td style="color:red;">${formatQty(item.shortage_qty)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function closeInsufficientModal() {
+      $("insufficientModalBackdrop").classList.remove("show");
+    }
+
+
+    function normalizeSalesMatchValue(value) {
+      return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\u0E00-\u0E7F]/g, "");
+    }
+
+    function getSalesSummaryForProduct(groupItems) {
+      const selectedUploadId = $("selectedSalesUpload")?.value || "";
+      if (!state.salesLines.length) {
+        return `<div class="sub-mini-text">${selectedUploadId ? "-" : "เลือกเอกสาร"}</div>`;
+      }
+
+      const codes = new Set();
+      const productIds = new Set();
+      const names = new Set();
+
+      groupItems.forEach(item => {
+        [
+          item.product_barcode,
+          item.products?.barcode,
+          item.products?.product_code,
+          item.batch_no
+        ].forEach(value => {
+          const normalized = normalizeSalesMatchValue(value);
+          if (normalized) codes.add(normalized);
+        });
+
+        const productId = Number(item.product_id || item.products?.id || 0);
+        if (productId) productIds.add(productId);
+
+        const nameKey = normalizeSalesMatchValue(item.product_name || item.products?.product_name || "");
+        if (nameKey) names.add(nameKey);
+      });
+
+      const matched = state.salesLines.filter(line => {
+        const lineCode = normalizeSalesMatchValue(line.product_barcode || "");
+        const lineProductId = Number(line.product_id || 0);
+        const lineName = normalizeSalesMatchValue(line.product_name || "");
+        return (lineCode && codes.has(lineCode)) || (lineProductId && productIds.has(lineProductId)) || (lineName && names.has(lineName));
+      });
+
+      if (!matched.length) {
+        return '<div class="sub-mini-text">-</div>';
+      }
+
+      const merged = new Map();
+      matched.forEach(line => {
+        const key = normalizeSalesMatchValue(line.product_barcode || line.product_name || line.id || "");
+        const prev = merged.get(key) || {
+          product_name: line.product_name || groupItems[0]?.product_name || "-",
+          sold_qty: 0
+        };
+        prev.sold_qty += normalizeNumber(line.sold_qty);
+        merged.set(key, prev);
+      });
+
+      return Array.from(merged.values()).map(item => `
+        <div class="sub-cell-item">
+          <div><strong>${escapeHtml(formatQty(item.sold_qty))}</strong></div>
+          <div class="sub-mini-text">${escapeHtml(item.product_name || "-")}</div>
+        </div>
+      `).join("");
+    }
+
+    function updateStats(allBatches) {
+      const expired = allBatches.filter(item => item.calculated_status === "expired").length;
+      const warning = allBatches.filter(item => item.calculated_status === "warning").length;
+
+      const grouped = {};
+      allBatches.forEach(item => {
+        const code = item.products?.product_code || item.products?.barcode || item.product_barcode || "NO_BARCODE";
+        const key = `${code}__${item.product_name || "-"}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(item);
+      });
+
+      const review = Object.values(grouped).filter(groupItems => {
+        const reviewInfo = getLatestManagerReviewChange(groupItems);
+        return reviewInfo.hasFlag || reviewInfo.variance !== 0;
+      }).length;
+
+      $("statAll").textContent = allBatches.length;
+      $("statExpired").textContent = expired;
+      $("statWarning").textContent = warning;
+      $("statReview").textContent = review;
+    }
+
+ function renderBatches() {
+  const search = $("searchInput").value.trim().toLowerCase();
+  const filter = $("statusFilter").value;
+  const tableBody = $("batchTableBody");
+
+  let allBatches = state.batches.map(item => {
+    const daysLeft = calculateDaysLeft(item.expiry_date);
+    const calculatedStatus = getStatus(daysLeft);
+    const productCode = item.products?.product_code || "";
+    const productBarcode = item.products?.barcode || "";
+    const displayCode = productCode || productBarcode || "";
+    const latestCheck = parseLatestStockCheckInfo(item.note);
+
+    return {
+      ...item,
+      days_left: daysLeft,
+      calculated_status: calculatedStatus,
+      product_barcode: displayCode,
+      product_name: item.products?.product_name || "-",
+      product_unit: item.products?.unit || "-",
+      supplier_name: item.suppliers?.name || "-",
+      latest_check: latestCheck
+    };
+  });
+
+  updateStats(allBatches);
+
+  let filtered = [...allBatches];
+
+  if (search) {
+    filtered = filtered.filter(item =>
+      String(item.product_name || "").toLowerCase().includes(search) ||
+      String(item.product_barcode || "").toLowerCase().includes(search) ||
+      String(item.batch_no || "").toLowerCase().includes(search) ||
+      String(item.supplier_name || "").toLowerCase().includes(search) ||
+      String(item.note || "").toLowerCase().includes(search)
+    );
+  }
+
+  filtered.sort((a, b) => {
+    const statusA = getStatusPriority(a.calculated_status);
+    const statusB = getStatusPriority(b.calculated_status);
+    if (statusA !== statusB) return statusA - statusB;
+
+    const expA = new Date(a.expiry_date || "9999-12-31").getTime();
+    const expB = new Date(b.expiry_date || "9999-12-31").getTime();
+    if (expA !== expB) return expA - expB;
+
+    const barcodeA = String(a.product_barcode || "").toLowerCase();
+    const barcodeB = String(b.product_barcode || "").toLowerCase();
+    return barcodeA.localeCompare(barcodeB);
+  });
+
+  filtered.sort((a, b) => {
+    const priorityA = getItemPriority(a);
+    const priorityB = getItemPriority(b);
+    if (priorityA !== priorityB) return priorityA - priorityB;
+
+    const expiryA = getExpiryTimestamp(a.expiry_date);
+    const expiryB = getExpiryTimestamp(b.expiry_date);
+    if (expiryA !== expiryB) return expiryA - expiryB;
+
+    return String(a.batch_no || "").localeCompare(String(b.batch_no || ""));
+  });
+
+  const grouped = {};
+  filtered.forEach(item => {
+    const key = `${item.product_barcode || "NO_BARCODE"}__${item.product_name || "-"}`;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(item);
+  });
+
+  let groupedItems = Object.values(grouped);
+
+  if (filter !== "all") {
+    groupedItems = groupedItems.filter(groupItems => {
+      const reviewInfo = getLatestManagerReviewChange(groupItems);
+      const hasManagerFlag = reviewInfo.hasFlag;
+      const hasDiff = reviewInfo.variance !== 0;
+
+      if (filter === "review") return hasManagerFlag || hasDiff;
+      return groupItems.some(item => item.calculated_status === filter);
+    });
+  }
+
+  groupedItems.sort((a, b) => {
+    const metaA = getGroupSortMeta(a);
+    const metaB = getGroupSortMeta(b);
+    if (metaA.priority !== metaB.priority) return metaA.priority - metaB.priority;
+
+    if (metaA.earliestExpiry !== metaB.earliestExpiry) return metaA.earliestExpiry - metaB.earliestExpiry;
+
+    const codeA = String(a[0]?.product_barcode || "").toLowerCase();
+    const codeB = String(b[0]?.product_barcode || "").toLowerCase();
+    return codeA.localeCompare(codeB);
+  });
+
+  $("tableInfoText").textContent =
+    search || filter !== "all"
+      ? `พบ ${groupedItems.length} รายการสินค้า`
+      : `แสดงทั้งหมด ${groupedItems.length} รายการสินค้า`;
+
+  if (!groupedItems.length) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="9" class="empty-state">&#3652;&#3617;&#3656;&#3614;&#3610;&#3586;&#3657;&#3629;&#3617;&#3641;&#3621;</td>
+      </tr>
+    `;
+    return;
+  }
+
+  let html = "";
+
+  groupedItems.forEach(groupItems => {
+    const first = groupItems[0];
+    const totalRemaining = groupItems.reduce((sum, row) => sum + normalizeNumber(row.quantity_remaining), 0);
+    const reviewInfo = getLatestManagerReviewChange(groupItems);
+    const hasManagerFlag = reviewInfo.hasFlag;
+    const variance = reviewInfo.variance;
+    const hasDiff = variance !== 0;
+    const hasExpired = groupItems.some(item => item.calculated_status === "expired");
+    const hasWarning = groupItems.some(item => item.calculated_status === "warning");
+    const isSoldOut = totalRemaining <= 0;
+
+    const checkedRows = groupItems.filter(item => item.latest_check?.checked);
+    const latestChecked = checkedRows.length
+      ? checkedRows.sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())[0]
+      : null;
+
+    const latestEditor = getLatestEditorInfo(groupItems);
+    const salesSummary = getSalesSummaryForProduct(groupItems);
+      const selectedUploadId = getSelectedUploadId();
+      const selectedUpload = getUploadById(selectedUploadId);
+      const selectedUploadDateText = selectedUpload?.sales_date ? formatDate(selectedUpload.sales_date) : "";
+
+    const expiredBatchSummary = groupItems.filter(item => item.calculated_status === "expired").map(item => item.batch_no || "-").join(", ");
+
+    const sortedGroupItems = [...groupItems].sort((a, b) => {
+      const priorityA = getItemPriority(a);
+      const priorityB = getItemPriority(b);
+      if (priorityA !== priorityB) return priorityA - priorityB;
+
+      const expA = new Date(a.expiry_date || "9999-12-31").getTime();
+      const expB = new Date(b.expiry_date || "9999-12-31").getTime();
+      if (expA !== expB) return expA - expB;
+
+      return String(a.batch_no || "").localeCompare(String(b.batch_no || ""));
+    });
+
+    const lotSummary = sortedGroupItems.map(item => {
+      const daysLeft = getDaysLeftText(item.days_left);
+      const deductedQty = normalizeNumber(state.salesBatchDeductMap[String(item.id)] || 0);
+      const deductHistory = state.salesBatchDeductHistoryMap[String(item.id)] || [];
+      const batchStatusText = item.calculated_status === "expired"
+        ? "หมดอายุ"
+        : item.calculated_status === "warning"
+          ? "ใกล้หมดอายุ"
+          : "ปกติ";
+      const checkInfo = item.latest_check?.checked
+        ? `<div class="sub-mini-text" style="color:#166534; margin-top:4px;">ตรวจนับล่าสุด: ${escapeHtml(item.latest_check.checked_at || "-")} | ${escapeHtml(item.latest_check.checked_by || "-")}</div>`
+        : "";
+      const deductInfo = selectedUploadId && deductedQty > 0
+        ? `<div class="lot-history-box" style="border-top:1px dashed #bfdbfe;">
+            <div class="lot-history-title" style="color:#1d4ed8;">ยอดจากไฟล์ที่เลือก</div>
+            <div class="lot-history-line is-selected">ก่อนตัด: ${escapeHtml(formatQty(normalizeNumber(item.quantity_remaining) + deductedQty))}</div>
+            <div class="lot-history-line is-selected">ตัดวันที่ ${selectedUploadDateText ? escapeHtml(selectedUploadDateText) : "-"}: -${escapeHtml(formatQty(deductedQty))}</div>
+          </div>`
+        : "";
+      const deductHistoryHtml = deductHistory.length
+        ? `<div class="lot-history-box">
+            <div class="lot-history-title">ประวัติตัดล็อตนี้</div>
+            ${deductHistory.map(entry => {
+              const isSelected = selectedUploadId && String(entry.uploadId) === String(selectedUploadId);
+              return `<div class="lot-history-line${isSelected ? " is-selected" : ""}">-${escapeHtml(formatQty(entry.qty))} | ${escapeHtml(entry.salesDateText)}</div>`;
+            }).join("")}
+          </div>`
+        : "";
+
+      return `
+        <div class="lot-card">
+          <div class="lot-card-head">
+            <div class="lot-card-no">${escapeHtml(item.batch_no || "-")}</div>
+            <div class="lot-card-status">${escapeHtml(batchStatusText)}</div>
+          </div>
+          <div class="lot-meta-list">
+            <div class="lot-meta-row">
+              <span class="lot-meta-label">คงเหลือ</span>
+              <span>${escapeHtml(formatQty(item.quantity_remaining))}</span>
+            </div>
+            <div class="lot-meta-row">
+              <span class="lot-meta-label">หมดอายุ</span>
+              <span>${escapeHtml(formatDate(item.expiry_date))}</span>
+            </div>
+            <div class="lot-meta-row">
+              <span class="lot-meta-label">เหลือเวลา</span>
+              <span>${escapeHtml(daysLeft)}</span>
+            </div>
+          </div>
+          ${deductInfo}
+          ${deductHistoryHtml}
+          ${checkInfo}
+        </div>
+      `;
+    }).join("");
+
+    let mainStatus = "safe";
+    if (hasExpired) mainStatus = "expired";
+    else if (hasWarning) mainStatus = "warning";
+
+    let statusHtml = getStatusBadge(mainStatus);
+    if (latestChecked) {
+      statusHtml += `
+        <div style="margin-top:8px;">
+          <span class="status-badge status-safe">&#3605;&#3619;&#3623;&#3592;&#3609;&#3633;&#3610;&#3649;&#3621;&#3657;&#3623;</span>
+        </div>
+        <div class="sub-mini-text" style="margin-top:6px; color:#166534;">
+          ${escapeHtml(latestChecked.latest_check.checked_at || "-")}<br>
+          ${escapeHtml(latestChecked.latest_check.checked_by || "-")}
+        </div>
+      `;
+    }
+    if (hasManagerFlag || hasDiff) {
+      statusHtml += `<div class="manager-flag-badge">&#3619;&#3629;&#3605;&#3619;&#3623;&#3592;&#3626;&#3629;&#3610;</div>`;
+    }
+    if (expiredBatchSummary) {
+      statusHtml += `<div class="sub-mini-text" style="margin-top:8px; color:#b91c1c; font-weight:700;">&#3621;&#3655;&#3629;&#3605;&#3627;&#3617;&#3604;&#3629;&#3634;&#3618;&#3640;: ${escapeHtml(expiredBatchSummary)}</div>`;
+    }
+
+    let changeHtml = `<span class="change-pill change-pill-ok">0</span>`;
+    if (hasDiff) {
+      const text = variance > 0 ? `+${formatQty(Math.abs(variance))}` : `-${formatQty(Math.abs(variance))}`;
+      changeHtml = `<span class="change-pill change-pill-danger">${text}</span>`;
+    }
+
+    html += `
+      <tr class="${(hasManagerFlag || hasDiff || hasExpired || isSoldOut) ? "manager-flag-row" : ""}">
+        <td>
+          <div class="simple-product-summary">
+            <div class="product-main-name">${escapeHtml(first.product_name)}</div>
+            <div class="sub-mini-text">หน่วย: ${escapeHtml(first.product_unit || "-")}</div>
+            <div class="product-main-meta">&#3619;&#3623;&#3617; ${groupItems.length} &#3621;&#3655;&#3629;&#3605;</div>
+          </div>
+        </td>
+        <td><div class="barcode-main">${escapeHtml(first.product_barcode || "-")}</div></td>
+        <td>
+          <strong class="${hasDiff ? "text-danger-strong" : ""}">${escapeHtml(formatQty(totalRemaining))}</strong>
+          ${isSoldOut ? `<div class="manager-change-box">&#3627;&#3617;&#3604;&#3626;&#3605;&#3658;&#3629;&#3585;</div>` : ""}
+          ${hasExpired ? `<div class="manager-change-box">&#3626;&#3636;&#3609;&#3588;&#3657;&#3634;&#3627;&#3617;&#3604;&#3629;&#3634;&#3618;&#3640;</div>` : ""}
+        </td>
+        <td>${changeHtml}</td>
+        <td>${salesSummary}</td>
+        <td>${lotSummary}</td>
+        <td>${statusHtml}</td>
+        <td>
+          <div class="sub-mini-text">${escapeHtml(latestEditor.name || "-")}</div>
+          <div class="sub-mini-text" style="margin-top:6px;">${escapeHtml(formatEditorTimestamp(latestEditor.at))}</div>
+        </td>
+        <td>
+          <div class="action-group">
+            ${
+              (hasExpired || isSoldOut)
+                ? `<button type="button" class="btn-warning" onclick="openProductStockCheckModal('${escapeHtml(first.product_barcode || "")}', ${Number(first.product_id)})">&#3605;&#3619;&#3623;&#3592;&#3609;&#3633;&#3610;&#3626;&#3636;&#3609;&#3588;&#3657;&#3634;&#3627;&#3617;&#3604;&#3629;&#3634;&#3618;&#3640;</button>`
+                : `<button type="button" class="btn-info" onclick="openProductStockCheckModal('${escapeHtml(first.product_barcode || "")}', ${Number(first.product_id)})">&#3605;&#3619;&#3623;&#3592;&#3609;&#3633;&#3610;</button>`
+            }
+            ${isSoldOut && canFinalizeStockOutConfirm()
+              ? `<button type="button" class="btn-secondary" onclick="confirmSoldOutProduct(${Number(first.product_id)})">&#3618;&#3639;&#3609;&#3618;&#3633;&#3609;&#3627;&#3617;&#3604;&#3626;&#3605;&#3658;&#3629;&#3585;</button>`
+              : ""}
+            ${hasExpired && !isSoldOut && canFinalizeStockOutConfirm()
+              ? `<button type="button" class="btn-secondary" onclick="confirmExpiredProduct(${Number(first.product_id)})">&#3618;&#3639;&#3609;&#3618;&#3633;&#3609;&#3627;&#3617;&#3604;&#3629;&#3634;&#3618;&#3640;</button>`
+              : ""}
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+
+  tableBody.innerHTML = html;
+}
+function openProductStockCheckModal(barcode, productId) {
+      const batches = getBatchesByProduct(productId).sort((a, b) => {
+        const statusA = getStatusPriority(getStatus(calculateDaysLeft(a.expiry_date)));
+        const statusB = getStatusPriority(getStatus(calculateDaysLeft(b.expiry_date)));
+        if (statusA !== statusB) return statusA - statusB;
+
+        const expA = new Date(a.expiry_date || "9999-12-31").getTime();
+        const expB = new Date(b.expiry_date || "9999-12-31").getTime();
+        return expA - expB;
+      });
+      if (!batches.length) return alert("ไม่พบล็อตของสินค้านี้");
+
+      const productName = batches[0]?.products?.product_name || "-";
+      const displayCode = batches[0]?.products?.product_code || batches[0]?.products?.barcode || barcode || "-";
+      const systemTotal = batches.reduce((sum, item) => sum + normalizeNumber(item.quantity_remaining), 0);
+      const originalTotal = batches.reduce((sum, item) => sum + normalizeNumber(item.quantity_remaining) + normalizeNumber(state.salesBatchDeductMap[String(item.id)] || 0), 0);
+      const selectedUpload = getUploadById(getSelectedUploadId());
+      const selectedDateLabel = selectedUpload ? `${formatDate(selectedUpload.sales_date)} | ${selectedUpload.file_name || "-"}` : "ยังไม่ได้เลือกไฟล์";
+
+      $("productCheckProductId").value = productId;
+      $("productCheckProductName").textContent = productName;
+      $("productCheckBarcode").textContent = displayCode;
+      $("productCheckSystemTotal").textContent = formatQty(systemTotal);
+      $("productCheckOriginalTotal").textContent = formatQty(originalTotal);
+      $("productCheckActualTotal").textContent = formatQty(systemTotal);
+      $("productCheckTotalChange").textContent = "0";
+      $("productCheckSelectedDate").textContent = selectedDateLabel;
+      $("productCheckVarianceSummary").value = "ยอดรวมตรงกับระบบ";
+      $("productCheckNote").value = "";
+      $("productCheckMismatchAlert").style.display = "none";
+
+      $("productStockCheckTableBody").innerHTML = batches.map(item => {
+        const batchStatus = getStatus(calculateDaysLeft(item.expiry_date));
+        const deductedQty = normalizeNumber(state.salesBatchDeductMap[String(item.id)] || 0);
+        const originalQty = normalizeNumber(item.quantity_remaining) + deductedQty;
+        const rowClass = batchStatus === "expired"
+          ? "stock-check-row-warning"
+          : batchStatus === "warning"
+            ? "stock-check-row-warning"
+            : "";
+
+        return `
+        <tr data-batch-id="${item.id}" class="${rowClass}">
+          <td>${escapeHtml(item.batch_no || "-")}</td>
+          <td>${escapeHtml(formatDate(item.expiry_date))}</td>
+          <td class="original-qty-cell">${escapeHtml(formatQty(originalQty))}</td>
+          <td class="deducted-qty-cell">${escapeHtml(formatQty(deductedQty))}</td>
+          <td class="system-qty-cell">${escapeHtml(formatQty(item.quantity_remaining))}</td>
+          <td>
+            <input
+              type="number"
+              class="actual-qty-input qty-input-small"
+              min="0"
+              step="0.01"
+              value="${escapeHtml(formatQty(item.quantity_remaining))}"
+              oninput="recalculateProductCheckTotals()"
+            >
+          </td>
+          <td class="variance-cell variance-ok">ตรง</td>
+          <td>
+            <input type="text" class="batch-note-input" placeholder="หมายเหตุรายล็อต (ถ้ามี)">
+          </td>
+        </tr>
+      `;
+      }).join("");
+
+      recalculateProductCheckTotals();
+      $("productStockCheckModalBackdrop").classList.add("show");
+    }
+
+    function closeProductStockCheckModal() {
+      $("productStockCheckModalBackdrop").classList.remove("show");
+      $("productCheckProductId").value = "";
+      $("productStockCheckTableBody").innerHTML = "";
+      $("productCheckProductName").textContent = "-";
+      $("productCheckBarcode").textContent = "-";
+      $("productCheckSystemTotal").textContent = "0";
+      $("productCheckOriginalTotal").textContent = "0";
+      $("productCheckActualTotal").textContent = "0";
+      $("productCheckTotalChange").textContent = "0";
+      $("productCheckSelectedDate").textContent = "-";
+      $("productCheckVarianceSummary").value = "";
+      $("productCheckNote").value = "";
+      $("productCheckMismatchAlert").style.display = "none";
+    }
+
+    function recalculateProductCheckTotals() {
+      const rows = Array.from(document.querySelectorAll("#productStockCheckTableBody tr"));
+      let systemTotal = 0;
+      let actualTotal = 0;
+
+      rows.forEach(row => {
+        const systemQty = normalizeNumber(row.querySelector(".system-qty-cell")?.textContent);
+        const actualQty = normalizeNumber(row.querySelector(".actual-qty-input")?.value);
+        const variance = Number((actualQty - systemQty).toFixed(2));
+
+        systemTotal += systemQty;
+        actualTotal += actualQty;
+
+        const varianceCell = row.querySelector(".variance-cell");
+        const input = row.querySelector(".actual-qty-input");
+
+        row.classList.remove("stock-check-row-warning");
+        varianceCell.classList.remove("variance-danger", "variance-ok");
+        if (input) input.classList.remove("input-diff");
+
+        if (variance === 0) {
+          varianceCell.textContent = "ตรง";
+          varianceCell.classList.add("variance-ok");
+        } else if (variance > 0) {
+          varianceCell.textContent = `เกิน +${formatQty(variance)}`;
+          varianceCell.classList.add("variance-danger");
+          row.classList.add("stock-check-row-warning");
+          if (input) input.classList.add("input-diff");
+        } else {
+          varianceCell.textContent = `ขาด ${formatQty(Math.abs(variance))}`;
+          varianceCell.classList.add("variance-danger");
+          row.classList.add("stock-check-row-warning");
+          if (input) input.classList.add("input-diff");
+        }
+      });
+
+      systemTotal = Number(systemTotal.toFixed(2));
+      actualTotal = Number(actualTotal.toFixed(2));
+      const totalVariance = Number((actualTotal - systemTotal).toFixed(2));
+
+      $("productCheckSystemTotal").textContent = formatQty(systemTotal);
+      $("productCheckActualTotal").textContent = formatQty(actualTotal);
+
+      if (totalVariance === 0) {
+        $("productCheckVarianceSummary").value = "ยอดรวมตรงกับระบบ";
+        $("productCheckTotalChange").textContent = "0";
+        $("productCheckTotalChange").className = "value simple-green";
+        $("productCheckMismatchAlert").style.display = "none";
+      } else if (totalVariance > 0) {
+        $("productCheckVarianceSummary").value = `ยอดรวมเกิน +${formatQty(totalVariance)}`;
+        $("productCheckTotalChange").textContent = `+${formatQty(totalVariance)}`;
+        $("productCheckTotalChange").className = "value simple-red";
+        $("productCheckMismatchAlert").style.display = "block";
+      } else {
+        $("productCheckVarianceSummary").value = `ยอดรวมขาด ${formatQty(Math.abs(totalVariance))}`;
+        $("productCheckTotalChange").textContent = `-${formatQty(Math.abs(totalVariance))}`;
+        $("productCheckTotalChange").className = "value simple-red";
+        $("productCheckMismatchAlert").style.display = "block";
+      }
+    }
+
+    
+  async function submitProductStockCheck() {
+    if (state.loading.stockCheckSave) return;
+
+    const productId = $("productCheckProductId").value;
+    const globalNote = $("productCheckNote").value.trim();
+    const checkedByName = getCurrentDisplayName();
+
+    if (!productId) {
+      alert("ไม่พบข้อมูลสินค้า");
+      return;
+    }
+
+    const rows = Array.from(document.querySelectorAll("#productStockCheckTableBody tr"));
+    if (!rows.length) {
+      alert("ไม่พบข้อมูลล็อต");
+      return;
+    }
+
+    const updates = [];
+    let systemTotal = 0;
+    let actualTotal = 0;
+      let hasExpiredBatch = false;
+      let hasSoldOutBatch = false;
+      const movedExpiredBatchIds = [];
+      const movedHistoryBatchIds = [];
+
+    for (const row of rows) {
+      const batchId = Number(row.dataset.batchId);
+      const actualQty = Number(row.querySelector(".actual-qty-input")?.value);
+      const batchNote = row.querySelector(".batch-note-input")?.value?.trim() || "";
+
+      const batch = state.batches.find(item => Number(item.id) === batchId);
+      if (!batch) continue;
+
+      const systemQty = normalizeNumber(batch.quantity_remaining);
+      const batchStatus = getStatus(calculateDaysLeft(batch.expiry_date));
+      const isExpired = batchStatus === "expired";
+
+      if (Number.isNaN(actualQty) || actualQty < 0) {
+        alert(`จำนวนของล็อต ${batch.batch_no} ไม่ถูกต้อง`);
+        return;
+      }
+
+      if (isExpired) hasExpiredBatch = true;
+      if (!isExpired && actualQty === 0) hasSoldOutBatch = true;
+
+      systemTotal += systemQty;
+      actualTotal += actualQty;
+
+      updates.push({
+        batch,
+        batchId,
+        systemQty,
+        actualQty: Number(actualQty.toFixed(2)),
+        variance: Number((actualQty - systemQty).toFixed(2)),
+        batchNote,
+        isExpired,
+        batchStatus
+      });
+    }
+
+    systemTotal = Number(systemTotal.toFixed(2));
+    actualTotal = Number(actualTotal.toFixed(2));
+
+    const totalVariance = Number((actualTotal - systemTotal).toFixed(2));
+
+    if (!updates.length) {
+      alert("ไม่มีรายการเปลี่ยนแปลง");
+      return;
+    }
+
+    if (hasSoldOutBatch && !canFinalizeStockOutConfirm()) {
+      alert("เฉพาะ admin หรือ manager เท่านั้นที่สามารถยืนยันสินค้าหมดสต๊อกและย้ายไปประวัติได้");
+      return;
+    }
+
+    if (totalVariance !== 0 && !globalNote) {
+      alert("หากยอดรวมไม่ตรงระบบ ต้องกรอกหมายเหตุ");
+      return;
+    }
+
+    const confirmed = confirm(
+      totalVariance === 0
+        ? `ยืนยันการบันทึก?\nระบบ: ${formatQty(systemTotal)}\nนับจริง: ${formatQty(actualTotal)}`
+        : `ยอดรวมไม่ตรงระบบ\nระบบ: ${formatQty(systemTotal)}\nนับจริง: ${formatQty(actualTotal)}\nส่วนต่าง: ${totalVariance > 0 ? "+" : "-"}${formatQty(Math.abs(totalVariance))}\n\nยืนยันการบันทึกต่อหรือไม่?`
+    );
+    if (!confirmed) return;
+
+    try {
+      state.loading.stockCheckSave = true;
+        setLoadingButton("productStockCheckBtn", "กำลังบันทึก...", true);
+      clearMessage();
+
+      for (const item of updates) {
+        const { batch, batchId, systemQty, actualQty, variance, batchNote, isExpired, batchStatus } = item;
+
+        const noteText = [
+          `[CHECKED_BY] ${checkedByName}`,
+          globalNote,
+          batchNote
+        ].filter(Boolean).join(" | ");
+
+        const { error: checkError } = await supabaseClient
+          .from("stock_checks")
+          .insert([{
+            batch_id: batchId,
+            checked_qty: actualQty,
+            system_qty: systemQty,
+            variance_qty: variance,
+            check_date: todayString(),
+            note: noteText
+          }]);
+
+        if (checkError) throw checkError;
+
+        const varianceLabel =
+          variance === 0
+            ? "ตรง"
+            : variance > 0
+              ? `เกิน +${formatQty(variance)}`
+              : `ขาด ${formatQty(Math.abs(variance))}`;
+
+        const mismatchFlag =
+          totalVariance !== 0 ? "[MANAGER_REVIEW]" : "[CHECK_OK]";
+
+        let adjustText =
+          `[${timestampThai()}] เธ•เธฃเธงเธเธเธฑเธเธเธฃเธดเธ | ${varianceLabel} | เน€เธ”เธดเธก ${formatQty(systemQty)} | เนเธซเธกเน ${formatQty(actualQty)} | ${mismatchFlag} | ${noteText}`;
+
+        if (isExpired) {
+          adjustText += ` | [EXPIRED_READY_FOR_RETURN]`;
+        }
+
+        const newNote = appendNote(batch.note, adjustText);
+
+        const updatePayload = {
+          quantity_remaining: actualQty,
+          note: newNote,
+          status: batchStatus,
+          updated_at: new Date().toISOString()
+        };
+
+        if (isExpired) {
+          updatePayload.handling_status = "pending";
+          updatePayload.handling_note = appendNote(
+            batch.handling_note,
+            `[${timestampThai()}] เธกเธฒเธเธฒเธเธซเธเนเธฒเธ•เธฃเธงเธเธเธฑเธ | ${checkedByName} | เธเธเน€เธซเธฅเธทเธญเธเธฃเธดเธ ${formatQty(actualQty)} | ${globalNote || batchNote || "-"}`
+          );
+          updatePayload.handled_at = new Date().toISOString();
+          updatePayload.handled_by = checkedByName;
+        } else if (actualQty === 0 && canFinalizeStockOutConfirm()) {
+          updatePayload.handling_status = "disposed";
+          updatePayload.handling_note = appendNote(
+            batch.handling_note,
+            `[SOLD_OUT_CONFIRMED] [${timestampThai()}] เธขเธทเธเธขเธฑเธเธชเธดเธเธเนเธฒเธซเธกเธ”เธชเธ•เนเธญเธเธเธฒเธเธซเธเนเธฒ stock_out | เธเธนเนเธขเธทเธเธขเธฑเธ: ${checkedByName} | เธซเธกเธฒเธขเน€เธซเธ•เธธ: ${globalNote || batchNote || "-"}`
+          );
+          updatePayload.handled_at = new Date().toISOString();
+          updatePayload.handled_by = checkedByName;
+        }
+
+        const { error: batchError } = await supabaseClient
+          .from("batches")
+          .update(updatePayload)
+          .eq("id", batchId);
+
+        if (batchError) throw batchError;
+
+        if (isExpired) {
+          movedExpiredBatchIds.push(batchId);
+        } else if (actualQty === 0 && canFinalizeStockOutConfirm()) {
+          movedHistoryBatchIds.push(batchId);
+        }
+
+        if (variance !== 0) {
+          const movementPayload = {
+            batch_id: batch.id,
+            product_id: batch.product_id,
+            movement_type: variance > 0 ? "adjust_increase" : "adjust_decrease",
+            qty_in: variance > 0 ? Math.abs(variance) : 0,
+            qty_out: variance < 0 ? Math.abs(variance) : 0,
+            balance_after: actualQty,
+            reference_type: "stock_check_multi",
+            note: `เธ•เธฃเธงเธเธเธฑเธเธเธฃเธดเธ | ${noteText}`
+          };
+
+          const { error: movementError } = await supabaseClient
+            .from("stock_movements")
+            .insert([movementPayload]);
+
+          if (movementError) throw movementError;
+        }
+      }
+
+      const selectedUploadId = $("selectedSalesUpload").value;
+      if (selectedUploadId && canViewSalesFiles()) {
+        const uploadItem = getUploadById(selectedUploadId);
+        const mergedNote = rebuildSalesUploadNote(
+          uploadItem,
+          uploadItem?.note_text || "",
+          uploadItem?.updated_by_name || uploadItem?.created_by_name || checkedByName,
+          checkedByName
+        );
+
+        const { error: uploadError } = await supabaseClient
+          .from("sales_uploads")
+          .update({
+            note: mergedNote,
+            checked_by_name: checkedByName
+          })
+          .eq("id", selectedUploadId);
+
+        if (uploadError) throw uploadError;
+      }
+
+      await refreshAll();
+      closeProductStockCheckModal();
+      if (movedExpiredBatchIds.length) {
+        sessionStorage.setItem("stock_out_transferred_expired_ids", JSON.stringify(movedExpiredBatchIds));
+        showMessage(`บันทึกผลตรวจนับเรียบร้อย และส่งล็อตหมดอายุ ${movedExpiredBatchIds.length} รายการไปหน้า expire_returns.html แล้ว`, "success");
+      } else if (movedHistoryBatchIds.length) {
+        const goToHistoryPage = confirm("มีสินค้าหมดสต๊อกที่ยืนยันแล้ว ต้องการไปหน้า ประวัติสินค้าคืนแล้ว ตอนนี้หรือไม่?");
+        if (goToHistoryPage) {
+          window.location.href = "expired_history.html";
+        }
+      }
+      showMessage("บันทึกผลตรวจนับเรียบร้อย", "success");
+
+      if (hasExpiredBatch) {
+        const goToExpiredPage = confirm(
+          "มีล็อตหมดอายุที่บันทึกแล้ว\nต้องการเปิดหน้า expire_returns.html ตอนนี้หรือไม่?"
+        );
+        if (goToExpiredPage) {
+          window.location.href = "expire_returns.html";
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      showMessage("บันทึกไม่สำเร็จ: " + getErrorText(error), "error");
+    } finally {
+      state.loading.stockCheckSave = false;
+      setLoadingButton("productStockCheckBtn", "กำลังบันทึก...", false);
+    }
+  }
+
+    async function confirmExpiredProduct(productId) {
+      try {
+        if (!canFinalizeStockOutConfirm()) {
+          alert("เฉพาะ admin หรือ manager เท่านั้นที่สามารถยืนยันสินค้าหมดอายุได้");
+          return;
+        }
+
+        const batches = getBatchesByProduct(productId).filter(item =>
+          getStatus(calculateDaysLeft(item.expiry_date)) === "expired" &&
+          !["returned", "disposed"].includes(String(item.handling_status || "").toLowerCase())
+        );
+
+        if (!batches.length) {
+          alert("ไม่พบล็อตหมดอายุสำหรับยืนยัน");
+          return;
+        }
+
+        const productName = batches[0]?.products?.product_name || "-";
+        const checkedByName = getCurrentDisplayName();
+        const confirmed = confirm(`ยืนยันสินค้าหมดอายุ: ${productName}\nจำนวน ${batches.length} ล็อต\nส่งไปหน้า จัดการของหมดอายุ / ชำรุด / ชำรุด ใช่หรือไม่?`);
+        if (!confirmed) return;
+
+        clearMessage();
+        const movedExpiredBatchIds = [];
+
+        for (const batch of batches) {
+          const noteLine = `[EXPIRED_CONFIRMED] [${timestampThai()}] ยืนยันสินค้าหมดอายุจากหน้า stock_out | ผู้ยืนยัน: ${checkedByName}`;
+          const { error } = await supabaseClient
+            .from("batches")
+            .update({
+              handling_status: "pending",
+              handling_note: appendNote(batch.handling_note, noteLine),
+              handled_at: new Date().toISOString(),
+              handled_by: checkedByName
+            })
+            .eq("id", batch.id);
+
+          if (error) throw error;
+          movedExpiredBatchIds.push(batch.id);
+        }
+
+        sessionStorage.setItem("stock_out_transferred_expired_ids", JSON.stringify(movedExpiredBatchIds));
+        await refreshAll();
+        showMessage(`ยืนยันสินค้าหมดอายุเรียบร้อย และย้าย ${batches.length} ล็อตไปหน้าจัดการของหมดอายุ / ชำรุดแล้ว`, "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("ยืนยันสินค้าหมดอายุไม่สำเร็จ: " + getErrorText(error), "error");
+      }
+    }
+
+    async function confirmSoldOutProduct(productId) {
+      try {
+        if (!canFinalizeStockOutConfirm()) {
+          alert("เฉพาะ admin หรือ manager เท่านั้นที่สามารถยืนยันสินค้าหมดสต๊อกได้");
+          return;
+        }
+
+        const batches = getBatchesByProduct(productId).filter(item =>
+          normalizeNumber(item.quantity_remaining) <= 0 &&
+          !["returned", "disposed"].includes(String(item.handling_status || "").toLowerCase())
+        );
+
+        if (!batches.length) {
+          alert("ไม่พบล็อตที่เป็นสินค้าหมดสต๊อกสำหรับยืนยัน");
+          return;
+        }
+
+        const productName = batches[0]?.products?.product_name || "-";
+        const checkedByName = getCurrentDisplayName();
+        const confirmed = confirm(`ยืนยันสินค้าหมดสต๊อก: ${productName}\nจำนวน ${batches.length} ล็อต\nบันทึกเข้า ประวัติสินค้าคืนแล้ว ใช่หรือไม่?`);
+        if (!confirmed) return;
+
+        clearMessage();
+
+        for (const batch of batches) {
+          const noteLine = `[SOLD_OUT_CONFIRMED] [${timestampThai()}] ยืนยันสินค้าหมดสต๊อกจากหน้า stock_out | ผู้ยืนยัน: ${checkedByName}`;
+          const { error } = await supabaseClient
+            .from("batches")
+            .update({
+              handling_status: "disposed",
+              handling_note: appendNote(batch.handling_note, noteLine),
+              handled_at: new Date().toISOString(),
+              handled_by: checkedByName
+            })
+            .eq("id", batch.id);
+
+          if (error) throw error;
+        }
+
+        await refreshAll();
+        showMessage(`ยืนยันสินค้าหมดสต๊อกเรียบร้อย และย้าย ${batches.length} ล็อตไปประวัติแล้ว`, "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("ยืนยันสินค้าหมดสต๊อกไม่สำเร็จ: " + getErrorText(error), "error");
+      }
+    }
+
+    async function refreshAll() {
+      await Promise.all([
+        loadProducts(),
+        loadBatches(),
+        loadSalesUploads()
+      ]);
+      await loadSalesBatchDeductionHistory();
+
+      populateSalesUploadSelect();
+      renderSalesUploadsList();
+      renderBatches();
+
+      if (!canViewSalesFiles()) {
+        $("salesLineCount").textContent = "0";
+        $("salesLineQtyTotal").textContent = "0";
+        $("salesUploadStatusLabel").textContent = "-";
+        $("detailReportDateRange").textContent = "-";
+        renderBatches();
+      }
+    }
+
+    function bindEvents() {
+      $("salesUploadForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        await uploadSalesPdfAndCreateRecord();
+      });
+
+      $("productStockCheckModalBackdrop").addEventListener("click", function (e) {
+        if (e.target.id === "productStockCheckModalBackdrop") closeProductStockCheckModal();
+      });
+
+      $("pdfPreviewModalBackdrop").addEventListener("click", function (e) {
+        if (e.target.id === "pdfPreviewModalBackdrop") closePdfPreviewModal();
+      });
+    }
+
+    async function initPage() {
+      try {
+        state.currentUser = requireLogin();
+        if (!state.currentUser) return;
+
+      showMessage("กำลังโหลดข้อมูล...", "info");
+        $("salesDate").value = todayString();
+
+        [
+          "uploadSalesBtn",
+          "autoReadPdfBtn",
+          "productStockCheckBtn",
+          "pdfPreviewSaveAndProcessBtn"
+        ].forEach(id => {
+          const btn = $(id);
+          if (btn) btn.dataset.originalText = btn.textContent;
+        });
+
+        applyPermissionUI();
+        bindEvents();
+        await refreshAll();
+        clearMessage();
+      } catch (error) {
+        console.error(error);
+        showMessage("โหลดข้อมูลไม่สำเร็จ: " + getErrorText(error), "error");
+      }
+    }
+
+    initPage();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

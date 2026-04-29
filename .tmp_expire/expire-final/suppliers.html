@@ -1,0 +1,629 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>ผู้จำหน่าย - ระบบติดตามวันหมดอายุ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css?v=20260402-sidebar">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <style>
+    .page-grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .mode-badge {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #3730a3;
+      vertical-align: middle;
+    }
+
+    .hint-box {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      color: #475569;
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+
+    .toolbar-left {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      width: 100%;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .search-wrap input {
+      padding-left: 42px;
+      width: 100%;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      font-size: 15px;
+    }
+
+    .id-badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .subtext {
+      margin: -8px 0 16px;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .summary-box .value.text-primary {
+      color: #4f46e5;
+    }
+
+    .table-wrap table td,
+    .table-wrap table th {
+      vertical-align: middle;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #777;
+      padding: 28px;
+    }
+
+    .readonly-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 10px 12px;
+      line-height: 1.6;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1150px) {
+      .page-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .action-group {
+        flex-direction: column;
+      }
+
+      .action-group button,
+      .form-actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>เมนู</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="suppliers.html" class="active">ผู้จำหน่าย</a>
+    <a href="products.html">สินค้า</a>
+    <a href="stock_in.html">รับสินค้าเข้า</a>
+    <a href="stock_out.html">ตัดสต๊อก / ตรวจนับ</a>
+    <a href="expire_returns.html">จัดการของหมดอายุ / ชำรุด</a>
+    <a href="expired_history.html">ประวัติคืน / ตัดออก</a>
+    <a href="damaged_manage.html">แจ้งสินค้าชำรุด</a>
+  </div>
+
+  <div class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>ผู้จำหน่าย</h1>
+        <p>จัดเก็บข้อมูลผู้จำหน่าย ค้นหา แก้ไข และลบข้อมูลได้ง่ายขึ้นในหน้าเดียว</p>
+      </div>
+
+      <div class="topbar-right" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <span class="role-badge" id="currentRoleBadge">ROLE</span>
+        <div class="summary-box">
+          <div class="label">จำนวนผู้จำหน่ายทั้งหมด</div>
+          <div class="value text-primary" id="supplierCount">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <div class="page-grid">
+      <div class="card" id="formCard">
+        <h2>
+          ฟอร์มผู้จำหน่าย
+          <span id="formModeBadge" class="mode-badge">โหมดเพิ่ม</span>
+        </h2>
+        <p class="subtext">ใช้ฟอร์มนี้เพื่อเพิ่มหรือแก้ไขข้อมูลผู้จำหน่าย</p>
+
+        <div class="hint-box">
+          ระบบจะสร้าง <strong>Supplier ID</strong> ให้อัตโนมัติเมื่อบันทึกข้อมูลใหม่
+        </div>
+
+        <form id="supplierForm" class="form-grid">
+          <input type="hidden" id="editId">
+
+          <div class="form-group">
+            <label>Supplier ID</label>
+            <input type="text" value="ระบบจะสร้างอัตโนมัติ" disabled>
+          </div>
+
+          <div class="form-group">
+            <label for="supplierName">ชื่อผู้จำหน่าย *</label>
+            <input type="text" id="supplierName" required placeholder="เช่น บริษัท ABC จำกัด">
+          </div>
+
+          <div class="form-group">
+            <label for="supplierContact">ชื่อผู้ติดต่อ</label>
+            <input type="text" id="supplierContact" placeholder="เช่น คุณสมชาย">
+          </div>
+
+          <div class="form-group">
+            <label for="supplierPhone">เบอร์โทร</label>
+            <input type="text" id="supplierPhone" placeholder="เช่น 0812345678">
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" id="saveBtn">บันทึกผู้จำหน่าย</button>
+            <button type="button" class="btn-secondary" onclick="resetForm()" id="resetBtn">ล้างข้อมูล</button>
+            <button type="button" class="btn-warning" id="cancelEditBtn" onclick="cancelEdit()" style="display:none;">
+              ยกเลิกการแก้ไข
+            </button>
+          </div>
+        </form>
+
+        <div id="readonlyNote" class="readonly-note hidden">
+          บัญชีนี้มีสิทธิ์ดูข้อมูลอย่างเดียว ไม่สามารถเพิ่ม แก้ไข หรือลบผู้จำหน่ายได้
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>รายการผู้จำหน่าย</h2>
+        <p class="subtext">ค้นหาและจัดการข้อมูลผู้จำหน่ายทั้งหมดจากตารางด้านล่าง</p>
+
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="ค้นหา Supplier ID / ชื่อ / ผู้ติดต่อ / เบอร์โทร"
+                oninput="renderSuppliers()"
+              >
+            </div>
+            <button type="button" class="btn-secondary" onclick="clearSearch()">ล้างค้นหา</button>
+          </div>
+        </div>
+
+        <div class="table-info" id="tableInfoText">กำลังโหลดข้อมูล...</div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Supplier ID</th>
+                <th>ชื่อผู้จำหน่าย</th>
+                <th>ผู้ติดต่อ</th>
+                <th>เบอร์โทร</th>
+                <th>วันที่สร้าง</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="supplierTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://uaqljdqtitdpctjxhutv.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_acbHgymVZkSQv0cHco0WWw_2Aipv9hL";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let suppliersCache = [];
+    let currentUser = null;
+
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    function getCurrentUser() {
+      try {
+        return JSON.parse(localStorage.getItem("user"));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function requireLogin() {
+      const user = getCurrentUser();
+
+      if (!user) {
+        alert("กรุณาเข้าสู่ระบบ");
+        window.location.href = "login.html";
+        return null;
+      }
+
+      return user;
+    }
+
+    function canEdit() {
+      return currentUser && ["admin", "manager"].includes(currentUser.role);
+    }
+
+    function canDelete() {
+      return currentUser && currentUser.role === "manager";
+    }
+
+    function canViewOnly() {
+      return currentUser && currentUser.role === "user";
+    }
+
+    function getRoleText(role) {
+      if (role === "admin") return "ADMIN";
+      if (role === "manager") return "MANAGER";
+      return "USER";
+    }
+
+    function applyPermissionUI() {
+      $("currentRoleBadge").textContent = getRoleText(currentUser?.role || "user");
+
+      if (canViewOnly()) {
+        $("supplierName").disabled = true;
+        $("supplierContact").disabled = true;
+        $("supplierPhone").disabled = true;
+        $("saveBtn").classList.add("hidden");
+        $("resetBtn").classList.add("hidden");
+        $("cancelEditBtn").classList.add("hidden");
+        $("readonlyNote").classList.remove("hidden");
+        $("formModeBadge").textContent = "โหมดดูข้อมูล";
+      } else {
+        $("supplierName").disabled = false;
+        $("supplierContact").disabled = false;
+        $("supplierPhone").disabled = false;
+        $("saveBtn").classList.remove("hidden");
+        $("resetBtn").classList.remove("hidden");
+        $("readonlyNote").classList.add("hidden");
+      }
+    }
+
+    function showMessage(text, type = "info") {
+      const box = $("messageBox");
+      box.className = "message-box";
+      box.style.display = "block";
+      box.textContent = text;
+
+      if (type === "success") box.classList.add("message-success");
+      else if (type === "error") box.classList.add("message-error");
+      else box.classList.add("message-info");
+    }
+
+    function clearMessage() {
+      const box = $("messageBox");
+      box.className = "message-box";
+      box.textContent = "";
+      box.style.display = "none";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleString("th-TH");
+    }
+
+    function setFormMode(isEdit) {
+      if (canViewOnly()) {
+        $("formModeBadge").textContent = "โหมดดูข้อมูล";
+        return;
+      }
+
+      if (isEdit) {
+        $("formModeBadge").textContent = "โหมดแก้ไข";
+        $("saveBtn").textContent = "บันทึกการแก้ไข";
+        $("cancelEditBtn").style.display = "inline-flex";
+      } else {
+        $("formModeBadge").textContent = "โหมดเพิ่ม";
+        $("saveBtn").textContent = "บันทึกผู้จำหน่าย";
+        $("cancelEditBtn").style.display = "none";
+      }
+    }
+
+    function resetForm() {
+      $("supplierForm").reset();
+      $("editId").value = "";
+      setFormMode(false);
+    }
+
+    function cancelEdit() {
+      resetForm();
+      clearMessage();
+    }
+
+    function clearSearch() {
+      $("searchInput").value = "";
+      renderSuppliers();
+    }
+
+    function updateSummary() {
+      $("supplierCount").textContent = suppliersCache.length;
+    }
+
+    async function loadSuppliers() {
+      const { data, error } = await supabaseClient
+        .from("suppliers")
+        .select("id, name, contact, phone, created_at")
+        .order("id", { ascending: true });
+
+      if (error) throw error;
+
+      suppliersCache = data || [];
+      updateSummary();
+    }
+
+    function renderSuppliers() {
+      const tableBody = $("supplierTableBody");
+      const keyword = $("searchInput").value.trim().toLowerCase();
+      const infoText = $("tableInfoText");
+
+      let rows = [...suppliersCache];
+
+      if (keyword) {
+        rows = rows.filter(item =>
+          String(item.id || "").toLowerCase().includes(keyword) ||
+          String(item.name || "").toLowerCase().includes(keyword) ||
+          String(item.contact || "").toLowerCase().includes(keyword) ||
+          String(item.phone || "").toLowerCase().includes(keyword)
+        );
+      }
+
+      infoText.textContent = keyword
+        ? `พบ ${rows.length} รายการ จากทั้งหมด ${suppliersCache.length} รายการ`
+        : `แสดงทั้งหมด ${suppliersCache.length} รายการ`;
+
+      if (!rows.length) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">ไม่พบข้อมูลผู้จำหน่าย</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tableBody.innerHTML = rows.map(item => {
+        const editBtn = canEdit()
+          ? `<button type="button" class="btn-warning" onclick="editSupplier(${item.id})">แก้ไข</button>`
+          : `<span style="color:#9ca3af;">ดูอย่างเดียว</span>`;
+
+        const deleteBtn = canDelete()
+          ? `<button type="button" class="btn-danger" onclick="deleteSupplier(${item.id})">ลบ</button>`
+          : "";
+
+        return `
+          <tr>
+            <td><span class="id-badge">SUP-${escapeHtml(item.id)}</span></td>
+            <td>${escapeHtml(item.name)}</td>
+            <td>${escapeHtml(item.contact || "-")}</td>
+            <td>${escapeHtml(item.phone || "-")}</td>
+            <td>${escapeHtml(formatDateTime(item.created_at))}</td>
+            <td>
+              <div class="action-group">
+                ${editBtn}
+                ${deleteBtn}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function editSupplier(id) {
+      if (!canEdit()) {
+        showMessage("บัญชีนี้ไม่มีสิทธิ์แก้ไขข้อมูล", "error");
+        return;
+      }
+
+      const item = suppliersCache.find(row => Number(row.id) === Number(id));
+      if (!item) return;
+
+      $("editId").value = item.id;
+      $("supplierName").value = item.name || "";
+      $("supplierContact").value = item.contact || "";
+      $("supplierPhone").value = item.phone || "";
+
+      setFormMode(true);
+      showMessage("กำลังแก้ไขข้อมูลผู้จำหน่าย SUP-" + item.id, "info");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function deleteSupplier(id) {
+      if (!canDelete()) {
+        showMessage("เฉพาะ MANAGER เท่านั้นที่สามารถลบข้อมูลได้", "error");
+        return;
+      }
+
+      const confirmed = confirm("คุณต้องการลบผู้จำหน่ายนี้ใช่หรือไม่?");
+      if (!confirmed) return;
+
+      try {
+        clearMessage();
+
+        const { error } = await supabaseClient
+          .from("suppliers")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+
+        await refreshAll();
+        resetForm();
+        showMessage("ลบผู้จำหน่ายเรียบร้อยแล้ว", "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("ลบข้อมูลไม่สำเร็จ: " + error.message, "error");
+      }
+    }
+
+    async function refreshAll() {
+      await loadSuppliers();
+      renderSuppliers();
+    }
+
+    $("supplierForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      if (!canEdit()) {
+        showMessage("บัญชีนี้ไม่มีสิทธิ์เพิ่มหรือแก้ไขข้อมูล", "error");
+        return;
+      }
+
+      try {
+        clearMessage();
+
+        const editId = $("editId").value;
+        const name = $("supplierName").value.trim();
+        const contact = $("supplierContact").value.trim();
+        const phone = $("supplierPhone").value.trim();
+
+        if (!name) {
+          showMessage("กรุณากรอกชื่อผู้จำหน่าย", "error");
+          return;
+        }
+
+        const duplicateName = suppliersCache.some(item =>
+          String(item.id) !== String(editId) &&
+          String(item.name || "").trim().toLowerCase() === name.toLowerCase()
+        );
+
+        if (duplicateName) {
+          showMessage("ชื่อผู้จำหน่ายนี้มีอยู่แล้ว", "error");
+          return;
+        }
+
+        const payload = {
+          name,
+          contact: contact || null,
+          phone: phone || null
+        };
+
+        if (editId) {
+          const { error } = await supabaseClient
+            .from("suppliers")
+            .update(payload)
+            .eq("id", editId);
+
+          if (error) throw error;
+
+          showMessage("แก้ไขข้อมูลผู้จำหน่ายเรียบร้อยแล้ว", "success");
+        } else {
+          const { error } = await supabaseClient
+            .from("suppliers")
+            .insert([payload]);
+
+          if (error) throw error;
+
+          showMessage("บันทึกผู้จำหน่ายเรียบร้อยแล้ว ระบบสร้าง Supplier ID ให้แล้ว", "success");
+        }
+
+        await refreshAll();
+        resetForm();
+      } catch (error) {
+        console.error(error);
+        showMessage("บันทึกข้อมูลไม่สำเร็จ: " + error.message, "error");
+      }
+    });
+
+    async function initPage() {
+      currentUser = requireLogin();
+      if (!currentUser) return;
+
+      applyPermissionUI();
+
+      try {
+        showMessage("กำลังโหลดข้อมูลผู้จำหน่าย...", "info");
+        setFormMode(false);
+        await refreshAll();
+        clearMessage();
+      } catch (error) {
+        console.error(error);
+        showMessage("โหลดข้อมูลไม่สำเร็จ: " + error.message, "error");
+      }
+    }
+
+    initPage();
+  </script>
+</body>
+</html>
+
+
+
+

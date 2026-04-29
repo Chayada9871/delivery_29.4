@@ -1,0 +1,743 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>รายงาน Power BI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css?v=20260402-sidebar">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      --radius: 18px;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Prompt", "Segoe UI", Tahoma, sans-serif;
+    }
+
+    .page {
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .page-header h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.2;
+      color: #111827;
+    }
+
+    .page-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 900px;
+      line-height: 1.7;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .top-user {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #eef2ff;
+      color: #3730a3;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .hero-card {
+      background:
+        linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(59, 130, 246, 0.05)),
+        #ffffff;
+      border: 1px solid #dbe4ff;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .hero-title {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .hero-text {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .bullet-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .bullet-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fafbff;
+    }
+
+    .bullet-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--primary);
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .bullet-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #111827;
+      font-size: 14px;
+    }
+
+    .bullet-item span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .quick-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      height: 100%;
+    }
+
+    .mini-kpi {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      padding: 14px;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .mini-kpi .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .mini-kpi .value {
+      font-size: 20px;
+      font-weight: 800;
+      color: #111827;
+      line-height: 1.2;
+    }
+
+    .mini-kpi .sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .section-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      color: #111827;
+    }
+
+    .section-subtext {
+      margin: 0 0 14px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .embed-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .embed-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .embed-status.warning {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: #eef2ff;
+      color: #3730a3;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e7ff;
+    }
+
+    .powerbi-frame-wrap {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      background: #fff;
+      min-height: 760px;
+      position: relative;
+    }
+
+    .powerbi-frame {
+      width: 100%;
+      height: 760px;
+      border: 0;
+      display: block;
+      background: #fff;
+    }
+
+    .placeholder-box {
+      min-height: 760px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      background:
+        radial-gradient(circle at top left, rgba(79,70,229,0.08), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(59,130,246,0.08), transparent 30%),
+        #ffffff;
+    }
+
+    .placeholder-content {
+      max-width: 760px;
+    }
+
+    .placeholder-icon {
+      font-size: 46px;
+      margin-bottom: 12px;
+    }
+
+    .placeholder-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 10px;
+    }
+
+    .placeholder-text {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .code-box {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 14px;
+      padding: 14px;
+      text-align: left;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-top: 12px;
+    }
+
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .tip-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .tip-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: #111827;
+    }
+
+    .tip-card p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .message-box {
+      display: none;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .message-info {
+      display: block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .message-success {
+      display: block;
+      background: #ecfdf5;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .message-error {
+      display: block;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    @media (max-width: 1200px) {
+      .hero-grid,
+      .tips-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .quick-kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .powerbi-frame-wrap,
+      .placeholder-box {
+        min-height: 560px;
+      }
+
+      .powerbi-frame {
+        height: 560px;
+      }
+
+      .page-header h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>เมนู</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="suppliers.html">ผู้จำหน่าย</a>
+    <a href="products.html">สินค้า</a>
+    <a href="stock_in.html">รับสินค้าเข้า</a>
+    <a href="stock_out.html">ตัดสต๊อก / ตรวจนับ</a>
+    <a href="expire_returns.html">จัดการของหมดอายุ / ชำรุด</a>
+    <a href="expired_history.html">ประวัติคืน / ตัดออก</a>
+    <a href="damaged_manage.html">แจ้งสินค้าชำรุด</a>
+    <a href="analysis_expire_damage.html">วิเคราะห์ภาพรวม</a>
+    <a href="powerbi_dashboard.html" class="active">รายงาน Power BI</a>
+  </div>
+
+  <div class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>รายงาน Power BI</h1>
+        <p>
+          หน้านี้ใช้สำหรับฝังรายงาน Power BI เพื่อดูภาพรวมเชิงวิเคราะห์ในมุมผู้บริหาร
+          เช่น แนวโน้มรายเดือน การเปรียบเทียบสินค้าหมดอายุและชำรุด อันดับผู้จำหน่าย
+          มูลค่าความเสียหาย และสินค้าที่มีปัญหาบ่อยในหน้าเดียว
+        </p>
+      </div>
+
+      <div class="topbar-right">
+        <div class="top-user">
+          <span>ผู้ใช้งาน:</span>
+          <strong id="currentUserText">-</strong>
+          <span id="currentRoleText">-</span>
+        </div>
+        <button type="button" class="btn-secondary" onclick="reloadPowerBI()">รีโหลดรายงาน</button>
+      </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <div class="card hero-card">
+      <div class="hero-grid">
+        <div>
+          <h2 class="hero-title">มุมมองสำหรับผู้บริหารและการวิเคราะห์เชิงลึก</h2>
+          <p class="hero-text">
+            คุณสามารถใช้หน้านี้เพื่อฝัง Power BI report จาก Microsoft Power BI ได้โดยตรง
+            ทำให้ทีมสามารถเปิดดู dashboard จากในระบบเดิมได้ทันที โดยไม่ต้องออกไปอีกหน้า
+          </p>
+
+          <div class="bullet-list">
+            <div class="bullet-item">
+              <div class="bullet-dot"></div>
+              <div>
+                <strong>ดูแนวโน้มแบบภาพรวม</strong>
+                <span>เช่น trend รายวัน รายสัปดาห์ รายเดือน ของงานหมดอายุ ชำรุด ส่งคืน และทำลาย</span>
+              </div>
+            </div>
+
+            <div class="bullet-item">
+              <div class="bullet-dot"></div>
+              <div>
+                <strong>วิเคราะห์ supplier และสินค้า</strong>
+                <span>ดู supplier ที่มีปัญหามากสุด และ top product ที่เกิดปัญหาซ้ำบ่อย</span>
+              </div>
+            </div>
+
+            <div class="bullet-item">
+              <div class="bullet-dot"></div>
+              <div>
+                <strong>ใช้ร่วมกับหน้าระบบเดิมได้</strong>
+                <span>หน้าปฏิบัติการยังใช้ทำงาน ส่วน Power BI ใช้สำหรับดูภาพรวมและตัดสินใจ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-kpi-grid">
+          <div class="mini-kpi">
+            <div class="label">เหมาะกับการดู</div>
+            <div class="value">Trend / KPI / Ranking</div>
+            <div class="sub">ใช้สำหรับการสรุปผลและวิเคราะห์</div>
+          </div>
+
+          <div class="mini-kpi">
+            <div class="label">เหมาะกับผู้ใช้</div>
+            <div class="value">Manager / Admin</div>
+            <div class="sub">เหมาะกับการ monitor ภาพรวม</div>
+          </div>
+
+          <div class="mini-kpi">
+            <div class="label">ตัวอย่างกราฟ</div>
+            <div class="value">Returned vs Disposed</div>
+            <div class="sub">เปรียบเทียบการปิดงานแต่ละแบบ</div>
+          </div>
+
+          <div class="mini-kpi">
+            <div class="label">ตัวอย่างมุมวิเคราะห์</div>
+            <div class="value">Supplier Risk</div>
+            <div class="sub">ช่วยมองหา supplier ที่มีปัญหาซ้ำ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">ฝังรายงาน Power BI</h2>
+      <p class="section-subtext">
+        ให้นำ embed URL จาก Power BI มาใส่ในตัวแปร <strong>POWERBI_EMBED_URL</strong> ด้านล่างใน script
+        แล้วระบบจะแสดงรายงานใน iframe อัตโนมัติ
+      </p>
+
+      <div class="embed-toolbar">
+        <div id="embedStatus" class="embed-status warning">ยังไม่ได้ตั้งค่า Power BI Embed URL</div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <a id="openFullReportBtn" class="btn-primary" href="#" target="_blank" rel="noopener noreferrer">เปิดรายงานเต็ม</a>
+          <button type="button" class="btn-secondary" onclick="copyEmbedGuide()">คัดลอกวิธีตั้งค่า</button>
+        </div>
+      </div>
+
+      <div class="powerbi-frame-wrap">
+        <iframe
+          id="powerbiFrame"
+          class="powerbi-frame"
+          title="Power BI Report"
+          src=""
+          allowfullscreen="true">
+        </iframe>
+
+        <div id="placeholderBox" class="placeholder-box">
+          <div class="placeholder-content">
+            <div class="placeholder-icon">📊</div>
+            <div class="placeholder-title">ยังไม่ได้เชื่อม Power BI</div>
+            <div class="placeholder-text">
+              ตอนนี้หน้านี้พร้อมใช้งานแล้ว แต่ยังไม่ได้ใส่ลิงก์ Embed ของ Power BI
+              ให้คุณนำลิงก์ Embed URL จาก Power BI มาใส่ในโค้ดก่อน จากนั้นรีเฟรชหน้าอีกครั้ง
+            </div>
+
+            <div class="code-box" id="embedGuideBox">
+const POWERBI_EMBED_URL = "PASTE_YOUR_POWER_BI_EMBED_URL_HERE";
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">คำแนะนำการใช้งาน</h2>
+      <p class="section-subtext">
+        สำหรับข้อมูลภายในบริษัท ควรใช้วิธี embed แบบปลอดภัย และหลีกเลี่ยงการเปิดรายงานแบบสาธารณะถ้าข้อมูลมีความสำคัญ
+      </p>
+
+      <div class="tips-grid">
+        <div class="tip-card">
+          <h3>1. ถ้าเป็นข้อมูลทั่วไป</h3>
+          <p>
+            สามารถใช้ลิงก์ embed ที่เปิดดูได้โดยตรงผ่าน iframe เพื่อให้หน้าโหลดง่ายและใช้งานเร็ว
+          </p>
+        </div>
+
+        <div class="tip-card">
+          <h3>2. ถ้าเป็นข้อมูลภายใน</h3>
+          <p>
+            ควรใช้ Power BI embed แบบมีสิทธิ์เข้าถึง และตรวจสอบว่าผู้ใช้ในองค์กรมีสิทธิ์เห็นรายงานนั้น
+          </p>
+        </div>
+
+        <div class="tip-card">
+          <h3>3. ใช้คู่กับหน้าปฏิบัติการ</h3>
+          <p>
+            หน้า expire/damage ใช้ทำงานจริง ส่วนหน้านี้ใช้สำหรับดูภาพรวม วิเคราะห์ และประชุมสรุปผล
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const POWERBI_EMBED_URL = "PASTE_YOUR_POWER_BI_EMBED_URL_HERE";
+
+    function showMessage(text, type = "info") {
+      const box = document.getElementById("messageBox");
+      box.className = "message-box";
+
+      if (type === "success") box.classList.add("message-success");
+      else if (type === "error") box.classList.add("message-error");
+      else box.classList.add("message-info");
+
+      box.textContent = text;
+      box.style.display = "block";
+    }
+
+    function clearMessage() {
+      const box = document.getElementById("messageBox");
+      box.className = "message-box";
+      box.textContent = "";
+      box.style.display = "none";
+    }
+
+    function normalizeRole(role) {
+      const value = String(role || "").trim().toLowerCase();
+      if (value === "admin") return "admin";
+      if (value === "manager") return "manager";
+      return "user";
+    }
+
+    function getUserFromStorage() {
+      let raw = null;
+
+      try {
+        raw = JSON.parse(localStorage.getItem("app_user") || "null");
+      } catch (error) {
+        raw = null;
+      }
+
+      if (raw && typeof raw === "object") {
+        return {
+          name: raw.full_name || raw.name || raw.username || raw.email || "ไม่ระบุชื่อ",
+          role: normalizeRole(raw.role || raw.user_role || raw.type)
+        };
+      }
+
+      return {
+        name:
+          localStorage.getItem("full_name") ||
+          localStorage.getItem("name") ||
+          localStorage.getItem("username") ||
+          localStorage.getItem("email") ||
+          "ไม่ระบุชื่อ",
+        role: normalizeRole(
+          localStorage.getItem("role") ||
+          localStorage.getItem("user_role") ||
+          "user"
+        )
+      };
+    }
+
+    function setCurrentUserUI() {
+      const user = getUserFromStorage();
+      document.getElementById("currentUserText").textContent = user.name;
+      document.getElementById("currentRoleText").textContent = `(${user.role.toUpperCase()})`;
+    }
+
+    function isValidEmbedUrl(url) {
+      if (!url) return false;
+      if (url.includes("PASTE_YOUR_POWER_BI_EMBED_URL_HERE")) return false;
+      return /^https?:\/\//i.test(url);
+    }
+
+    function renderPowerBI() {
+      const frame = document.getElementById("powerbiFrame");
+      const placeholder = document.getElementById("placeholderBox");
+      const status = document.getElementById("embedStatus");
+      const openBtn = document.getElementById("openFullReportBtn");
+
+      if (isValidEmbedUrl(POWERBI_EMBED_URL)) {
+        frame.src = POWERBI_EMBED_URL;
+        frame.style.display = "block";
+        placeholder.style.display = "none";
+
+        status.textContent = "เชื่อม Power BI พร้อมใช้งาน";
+        status.className = "embed-status";
+
+        openBtn.href = POWERBI_EMBED_URL;
+        openBtn.style.pointerEvents = "auto";
+        openBtn.style.opacity = "1";
+
+        clearMessage();
+      } else {
+        frame.src = "";
+        frame.style.display = "none";
+        placeholder.style.display = "flex";
+
+        status.textContent = "ยังไม่ได้ตั้งค่า Power BI Embed URL";
+        status.className = "embed-status warning";
+
+        openBtn.href = "#";
+        openBtn.style.pointerEvents = "none";
+        openBtn.style.opacity = "0.6";
+
+        showMessage("กรุณาใส่ Power BI Embed URL ก่อนใช้งาน", "info");
+      }
+    }
+
+    function reloadPowerBI() {
+      if (!isValidEmbedUrl(POWERBI_EMBED_URL)) {
+        showMessage("ยังไม่มี Power BI Embed URL ให้รีโหลด", "error");
+        return;
+      }
+
+      const frame = document.getElementById("powerbiFrame");
+      const currentSrc = frame.src;
+      frame.src = "";
+      setTimeout(() => {
+        frame.src = currentSrc;
+        showMessage("รีโหลดรายงานเรียบร้อยแล้ว", "success");
+      }, 150);
+    }
+
+    function copyEmbedGuide() {
+      const text = 'const POWERBI_EMBED_URL = "PASTE_YOUR_POWER_BI_EMBED_URL_HERE";';
+
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          showMessage("คัดลอกตัวอย่างการตั้งค่าแล้ว", "success");
+        })
+        .catch(() => {
+          showMessage("คัดลอกไม่สำเร็จ กรุณาคัดลอกจากกล่องตัวอย่างแทน", "error");
+        });
+    }
+
+    setCurrentUserUI();
+    renderPowerBI();
+  </script>
+</body>
+</html>
+
+
+

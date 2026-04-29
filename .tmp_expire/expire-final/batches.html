@@ -1,0 +1,2809 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ล็อตสินค้า / Daily Sales / ตรวจนับสต๊อก</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+
+      --sidebar: #111827;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+
+      --secondary: #e5e7eb;
+      --secondary-text: #111827;
+
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+
+      --warning: #f59e0b;
+      --warning-hover: #d97706;
+
+      --success: #059669;
+      --success-hover: #047857;
+
+      --info: #0284c7;
+      --info-hover: #0369a1;
+
+      --green-bg: #ecfdf5;
+      --green-text: #15803d;
+
+      --orange-bg: #fff7ed;
+      --orange-text: #c2410c;
+
+      --red-bg: #fef2f2;
+      --red-text: #b91c1c;
+
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Prompt", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 220px;
+      height: 100vh;
+      background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+      color: white;
+      padding: 24px 16px;
+      overflow-y: auto;
+      box-shadow: 4px 0 18px rgba(0,0,0,0.08);
+    }
+
+    .sidebar h2 {
+      margin: 0 0 24px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .sidebar a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      padding: 11px 12px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      transition: 0.2s ease;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+      background: rgba(255,255,255,0.12);
+    }
+
+    .page {
+      margin-left: 220px;
+      padding: 24px;
+      max-width: 1800px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .page-header h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      font-weight: 800;
+    }
+
+    .page-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .topbar-right {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .summary-box {
+      background: white;
+      border-radius: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      min-width: 220px;
+    }
+
+    .summary-box .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .summary-box .value {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .message-box {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      display: none;
+      border: 1px solid transparent;
+      white-space: pre-line;
+    }
+
+    .message-success {
+      display: block;
+      background: #ecfdf5;
+      color: #065f46;
+      border-color: #a7f3d0;
+    }
+
+    .message-error {
+      display: block;
+      background: #fef2f2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    .message-info {
+      display: block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 470px 1fr;
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 24px;
+    }
+
+    .left-stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .subtext {
+      margin: -4px 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .help-box {
+      background: #eff6ff;
+      color: #1e3a8a;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .warning-box {
+      background: #fff7ed;
+      color: #9a3412;
+      border: 1px solid #fdba74;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .quick-box {
+      background: #f8fafc;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      margin-bottom: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    input, select, textarea {
+      padding: 12px 13px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: "Prompt", Arial, sans-serif;
+      width: 100%;
+      background: #fff;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #818cf8;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    input[readonly] {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .small-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .form-actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: "Prompt", Arial, sans-serif;
+      transition: 0.2s ease;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-secondary {
+      background: var(--secondary);
+      color: var(--secondary-text);
+    }
+    .btn-secondary:hover { background: #d1d5db; }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    .btn-danger:hover { background: var(--danger-hover); }
+
+    .btn-warning {
+      background: var(--warning);
+      color: white;
+    }
+    .btn-warning:hover { background: var(--warning-hover); }
+
+    .btn-scan {
+      background: var(--success);
+      color: white;
+    }
+    .btn-scan:hover { background: var(--success-hover); }
+
+    .btn-info {
+      background: var(--info);
+      color: white;
+    }
+    .btn-info:hover { background: var(--info-hover); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-box {
+      background: #f9fafb;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .stat-box .label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-box .value {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .stat-box.all .value { color: var(--primary); }
+    .stat-box.expired .value { color: var(--red-text); }
+    .stat-box.warning .value { color: var(--orange-text); }
+    .stat-box.safe .value { color: var(--green-text); }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar-left {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      width: 100%;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .search-wrap input {
+      padding-left: 42px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      font-size: 15px;
+    }
+
+    .table-info {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ececec;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+      white-space: nowrap;
+      color: #374151;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:hover td {
+      background: #fafcff;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-expired {
+      background: var(--red-bg);
+      color: var(--red-text);
+    }
+
+    .status-warning {
+      background: #ffedd5;
+      color: #c2410c;
+    }
+
+    .status-safe {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .status-pending {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .status-processed {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-reconciled {
+      background: #ecfeff;
+      color: #155e75;
+    }
+
+    .status-partial {
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #777;
+      padding: 24px;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .barcode-row,
+    .generated-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .barcode-row input,
+    .generated-row input {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .scanner-area {
+      display: none;
+      margin-top: 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fafafa;
+    }
+
+    #productReader {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .scanner-note {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .supplier-search-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    .supplier-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+
+    .supplier-option {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 14px;
+    }
+
+    .supplier-option:last-child {
+      border-bottom: none;
+    }
+
+    .supplier-option:hover {
+      background: #f9fafb;
+    }
+
+    .supplier-option-name {
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .supplier-option-meta {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .supplier-selected-note {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #2563eb;
+      min-height: 16px;
+    }
+
+    .line-item-wrap {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .line-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fafafa;
+    }
+
+    .line-item-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 0.7fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .line-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .mini-boxes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .mini-box {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .mini-box .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .mini-box .value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .qty-highlight {
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .doc-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .doc-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fafafa;
+    }
+
+    .doc-item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .doc-title {
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .doc-meta {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .doc-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .sub-cell-item {
+      padding: 8px 0;
+      border-bottom: 1px dashed #e5e7eb;
+    }
+
+    .sub-cell-item:last-child {
+      border-bottom: none;
+    }
+
+    .sub-mini-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .product-main-name {
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 2px;
+    }
+
+    .product-main-meta {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .barcode-main {
+      font-weight: 800;
+      color: #1e3a8a;
+      word-break: break-word;
+    }
+
+    .note-cell {
+      min-width: 220px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 16px;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 640px;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      padding: 16px 20px 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .modal-close {
+      background: #f3f4f6;
+      color: #111827;
+      padding: 8px 12px;
+    }
+
+    .modal-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-info-box {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .modal-info-box .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .modal-info-box .value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111827;
+      word-break: break-word;
+    }
+
+    @media (max-width: 1300px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 1100px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .three-col {
+        grid-template-columns: 1fr;
+      }
+      .line-item-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .page {
+        margin-left: 0;
+        padding: 16px;
+      }
+
+      .sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+      }
+
+      .stats,
+      .mini-boxes,
+      .two-col,
+      .modal-info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-header h1 {
+        font-size: 26px;
+      }
+
+      .form-actions,
+      .action-group,
+      .modal-footer,
+      .doc-actions {
+        flex-direction: column;
+      }
+
+      .form-actions button,
+      .action-group button,
+      .modal-footer button,
+      .doc-actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>เมนู</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="suppliers.html">ผู้จำหน่าย</a>
+    <a href="products.html">สินค้า</a>
+    <a href="batches.html" class="active">ล็อตสินค้า / สต๊อก</a>
+    <a href="expire_returns.html">จัดการของหมดอายุ / ชำรุด</a>
+    <a href="expired_history.html">ประวัติคืน / ตัดออก</a>
+    <a href="damaged_manage.html">แจ้งสินค้าชำรุด</a>
+  </div>
+
+  <div class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>ล็อตสินค้า / Daily Sales / ตรวจนับสต๊อก</h1>
+        <p>อัปโหลดไฟล์ขาย บันทึกรายการขาย ตัดสต๊อกแบบ FEFO และตรวจนับจริงได้ในหน้าเดียว</p>
+      </div>
+
+      <div class="topbar-right">
+        <div class="summary-box">
+          <div class="label">จำนวนล็อตทั้งหมด</div>
+          <div class="value" id="topSummaryCount">0</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">คงเหลือรวม</div>
+          <div class="value" id="topSummaryQty">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <div class="main-grid">
+      <div class="left-stack">
+        <div class="card">
+          <h2>1. โหลด PDF</h2>
+          <p class="subtext">เก็บไฟล์ขายประจำวันไว้ในระบบก่อน แล้วค่อยบันทึกรายการขาย</p>
+
+          <div class="help-box">
+            หมายเหตุ: หน้านี้ใช้อัปโหลดไฟล์ PDF เข้า Supabase Storage แล้วให้ผู้ใช้ตรวจสอบและบันทึกรายการขายก่อนตัดสต๊อก
+          </div>
+
+          <form id="salesUploadForm" class="form-grid">
+            <div class="two-col">
+              <div class="form-group">
+                <label for="salesDate">วันที่ขาย *</label>
+                <input type="date" id="salesDate" required>
+              </div>
+
+              <div class="form-group">
+                <label for="salesPdf">ไฟล์ PDF *</label>
+                <input type="file" id="salesPdf" accept="application/pdf" required>
+              </div>
+            </div>
+
+            <div class="form-group full">
+              <label for="salesUploadNote">หมายเหตุ</label>
+              <textarea id="salesUploadNote" placeholder="เช่น Daily sales สาขาหลัก รอบปิดร้าน"></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary" id="uploadSalesBtn">อัปโหลด PDF</button>
+              <button type="button" class="btn-secondary" onclick="resetSalesUploadForm()">ล้างข้อมูล</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>2. รายการขาย</h2>
+          <p class="subtext">กรอกหรือยืนยันยอดขายรายสินค้า แล้วค่อยประมวลผลตัดสต๊อก</p>
+
+          <div class="warning-box">
+            แนะนำ: หลังอัปโหลด PDF ให้เลือกเอกสารก่อน แล้วค่อยเพิ่มหรือแก้ไขรายการขายตาม barcode และจำนวน
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="selectedSalesUpload">เอกสารขายที่เลือก *</label>
+              <select id="selectedSalesUpload" onchange="onChangeSelectedSalesUpload()">
+                <option value="">-- เลือกเอกสารขาย --</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mini-boxes">
+            <div class="mini-box">
+              <div class="label">จำนวนรายการขาย</div>
+              <div class="value" id="salesLineCount">0</div>
+            </div>
+            <div class="mini-box">
+              <div class="label">ยอดขายรวม</div>
+              <div class="value" id="salesLineQtyTotal">0</div>
+            </div>
+            <div class="mini-box">
+              <div class="label">สถานะเอกสาร</div>
+              <div class="value" id="salesUploadStatusLabel">-</div>
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top:14px;">
+            <button type="button" class="btn-info" onclick="addSalesLineRow()">เพิ่มรายการขาย</button>
+            <button type="button" class="btn-primary" id="saveSalesLinesBtn" onclick="saveSalesLines()">บันทึกรายการขาย</button>
+            <button type="button" class="btn-warning" id="processSalesBtn" onclick="processSalesUpload()">ประมวลผลตัดสต๊อก</button>
+          </div>
+
+          <div id="salesLineWrap" class="line-item-wrap"></div>
+        </div>
+
+        <div class="card">
+          <h2>3. เอกสารที่บันทึกไว้</h2>
+          <p class="subtext">เลือกเอกสารเพื่อเพิ่มรายการขาย ดู PDF หรือประมวลผลตัดสต๊อก</p>
+
+          <div id="salesUploadsList" class="doc-list"></div>
+        </div>
+
+        <div class="card">
+          <h2>
+            ฟอร์มเพิ่มล็อตสินค้า
+            <span id="formModeBadge" style="display:inline-block;margin-left:10px;padding:5px 10px;font-size:12px;font-weight:700;border-radius:999px;background:#eef2ff;color:#3730a3;vertical-align:middle;">โหมดเพิ่ม</span>
+          </h2>
+          <p class="subtext">ใช้สำหรับเพิ่มล็อตใหม่หรือแก้ไขข้อมูลพื้นฐานของล็อต</p>
+
+          <div class="quick-box">
+            ถ้าต้องการแก้จำนวนคงเหลือจริง ให้ใช้ปุ่ม <strong>ตรวจนับจริง</strong> ในตารางด้านขวาแทนการแก้ยอดรับเข้า
+          </div>
+
+          <form id="batchForm">
+            <input type="hidden" id="editId">
+            <input type="hidden" id="productId">
+            <input type="hidden" id="supplierId">
+
+            <div class="form-grid">
+              <div class="form-group full">
+                  <label for="productBarcode">บาร์โค้ดสินค้า *</label>
+                <div class="barcode-row">
+                  <input type="text" id="productBarcode" placeholder="สแกนหรือกรอกบาร์โค้ดสินค้า" required>
+                  <button type="button" class="btn-scan" onclick="startProductScanner()">สแกนสินค้า</button>
+                  <button type="button" class="btn-secondary" onclick="stopProductScanner()">ปิดกล้อง</button>
+                  <button type="button" class="btn-info" onclick="autofillProductByBarcode(true)">ค้นหาสินค้า</button>
+                </div>
+
+                <div id="productScannerArea" class="scanner-area">
+                  <div id="productReader"></div>
+                  <div class="scanner-note">เมื่อสแกนสำเร็จ ระบบจะค้นหาข้อมูลสินค้าให้โดยอัตโนมัติ</div>
+                </div>
+              </div>
+
+              <div class="two-col">
+                <div class="form-group">
+                  <label for="productName">ชื่อสินค้า</label>
+                  <input type="text" id="productName" readonly>
+                </div>
+
+                <div class="form-group">
+                  <label for="receivedDate">วันที่รับสินค้า</label>
+                  <input type="date" id="receivedDate">
+                </div>
+              </div>
+
+              <div class="two-col">
+                <div class="form-group">
+                  <label for="batchNo">เลขล็อต *</label>
+                  <div class="generated-row">
+                    <input type="text" id="batchNo" required>
+                    <button type="button" class="btn-info" onclick="regenerateBatchNo()">สร้างใหม่</button>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="expiryDate">วันหมดอายุ *</label>
+                  <input type="date" id="expiryDate" required>
+                </div>
+              </div>
+
+              <div class="two-col">
+                <div class="form-group">
+                  <label for="quantityReceived">จำนวนรับเข้า *</label>
+                  <input type="number" id="quantityReceived" min="0" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="supplierSearch">ผู้จำหน่าย</label>
+                  <div class="supplier-search-wrap">
+                    <input type="text" id="supplierSearch" placeholder="พิมพ์เพื่อค้นหาผู้จำหน่าย" autocomplete="off">
+                    <div id="supplierDropdown" class="supplier-dropdown"></div>
+                  </div>
+                  <div id="supplierSelectedNote" class="supplier-selected-note"></div>
+                </div>
+              </div>
+
+              <div class="form-group full">
+                <label for="note">หมายเหตุ</label>
+                <textarea id="note" placeholder="เช่น ล็อตรับเข้ารอบเช้า"></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary" id="saveBtn">บันทึกล็อตสินค้า</button>
+              <button type="button" class="btn-secondary" onclick="resetForm()">ล้างข้อมูล</button>
+              <button type="button" class="btn-warning" id="cancelEditBtn" onclick="cancelEdit()" style="display:none;">ยกเลิกการแก้ไข</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>ล็อตสินค้าในระบบ</h2>
+        <p class="subtext">สินค้า barcode เดียวกันจะถูกรวมเป็น 1 แถว และแยกข้อมูลตามล็อต จำนวน และวันหมดอายุ</p>
+
+        <div class="stats">
+          <div class="stat-box all">
+            <div class="label">ทั้งหมด</div>
+            <div class="value" id="statAll">0</div>
+          </div>
+          <div class="stat-box expired">
+            <div class="label">หมดอายุ</div>
+            <div class="value" id="statExpired">0</div>
+          </div>
+          <div class="stat-box.warning">
+            <div class="label">เนเธเธฅเนเธซเธกเธ”เธญเธฒเธขเธธ</div>
+            <div class="value" id="statWarning">0</div>
+          </div>
+          <div class="stat-box.safe">
+            <div class="label">ปกติ</div>
+            <div class="value" id="statSafe">0</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-wrap">
+              <span class="search-icon">ค้นหา</span>
+              <input type="text" id="searchInput" placeholder="ค้นหาสินค้า / บาร์โค้ด / ล็อต / ผู้จำหน่าย / หมายเหตุ" oninput="renderBatches()">
+            </div>
+
+            <select id="statusFilter" onchange="renderBatches()">
+              <option value="all">ทุกสถานะ</option>
+              <option value="expired">หมดอายุ</option>
+              <option value="warning">เนเธเธฅเนเธซเธกเธ”เธญเธฒเธขเธธ</option>
+              <option value="safe">ปกติ</option>
+            </select>
+
+            <button type="button" class="btn-secondary" onclick="clearSearch()">ล้างค้นหา</button>
+          </div>
+        </div>
+
+        <div class="table-info" id="tableInfoText">กำลังโหลดข้อมูล...</div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>สินค้า</th>
+                <th>บาร์โค้ดสินค้า</th>
+                <th>เลขล็อต</th>
+                <th>จำนวนคงเหลือ</th>
+                <th>วันหมดอายุ</th>
+                <th>ผู้จำหน่าย</th>
+                <th>สถานะ</th>
+                <th>หมายเหตุ</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="batchTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="stockCheckModalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>ตรวจนับจริง / กระทบยอดล็อต</h3>
+        <button type="button" class="modal-close" onclick="closeStockCheckModal()">ปิด</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="stockCheckBatchId">
+
+        <div class="modal-info-grid">
+          <div class="modal-info-box">
+            <div class="label">เธชเธดเธเธเนเธฒ</div>
+            <div class="value" id="stockCheckProductName">-</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">เน€เธฅเธเธฅเนเธญเธ•</div>
+            <div class="value" id="stockCheckBatchNo">-</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">เธเธเน€เธซเธฅเธทเธญเนเธเธฃเธฐเธเธ</div>
+            <div class="value" id="stockCheckSystemQty">0</div>
+          </div>
+          <div class="modal-info-box">
+            <div class="label">เธงเธฑเธเธซเธกเธ”เธญเธฒเธขเธธ</div>
+            <div class="value" id="stockCheckExpiryDate">-</div>
+          </div>
+        </div>
+
+        <div class="warning-box" style="margin-top:0;">
+          เธเธฑเนเธเธ•เธญเธเธเธตเนเนเธเนเธชเธณเธซเธฃเธฑเธเธชเธธเนเธกเธ•เธฃเธงเธเธเธฑเธเธเธฃเธดเธ เนเธฅเนเธงเน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธเธฑเธเธขเธญเธ”เธฃเธฐเธเธเธ—เธตเนเน€เธเธดเธ”เธเธฒเธเธเธฒเธฃเธ•เธฑเธ”เธ•เธฒเธก sales data
+        </div>
+
+        <div class="form-grid">
+          <div class="three-col">
+            <div class="form-group">
+              <label for="checkedQty">เธเธณเธเธงเธเธ—เธตเนเธเธฑเธเนเธ”เนเธเธฃเธดเธ *</label>
+              <input type="number" id="checkedQty" min="0" step="0.01" oninput="previewVariance()">
+            </div>
+
+            <div class="form-group">
+              <label for="variancePreview">เธชเนเธงเธเธ•เนเธฒเธ</label>
+              <input type="text" id="variancePreview" readonly>
+            </div>
+
+            <div class="form-group">
+              <label for="adjustAfterCheck">เธเธฒเธฃเธ”เธณเน€เธเธดเธเธเธฒเธฃ</label>
+              <select id="adjustAfterCheck">
+                <option value="check_only">เธเธฑเธเธ—เธถเธเธเธฅเธ•เธฃเธงเธเธเธฑเธเธญเธขเนเธฒเธเน€เธ”เธตเธขเธง</option>
+                <option value="adjust_system">เธเธฑเธเธ—เธถเธเนเธฅเธฐเธเธฃเธฑเธเธขเธญเธ”เธฃเธฐเธเธเธ•เธฒเธกเธ—เธตเนเธเธฑเธเธเธฃเธดเธ</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group full">
+            <label for="stockCheckNote">เธซเธกเธฒเธขเน€เธซเธ•เธธ *</label>
+            <textarea id="stockCheckNote" placeholder="เน€เธเนเธ เธชเธธเนเธกเธ•เธฃเธงเธ shelf A / เธเธเธงเนเธฒเธขเธญเธ”เธเธฃเธดเธเนเธกเนเธ•เธฃเธเธเธฑเธเธฅเนเธญเธ•เธ—เธตเนเธฃเธฐเธเธเธ•เธฑเธ” / เธญเธฒเธเธกเธต picking เธเธดเธ”เธฅเนเธญเธ•"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeStockCheckModal()">เธขเธเน€เธฅเธดเธ</button>
+        <button type="button" class="btn-primary" id="stockCheckBtn" onclick="submitStockCheck()">เธเธฑเธเธ—เธถเธเธเธฅเธ•เธฃเธงเธเธเธฑเธ</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const CONFIG = {
+    SUPABASE_URL: "https://uaqljdqtitdpctjxhutv.supabase.co",
+    SUPABASE_ANON_KEY: "sb_publishable_acbHgymVZkSQv0cHco0WWw_2Aipv9hL",
+    SALES_BUCKET: "sales-pdfs",
+    WARNING_DAYS: 7
+  };
+
+  const supabaseClient = window.supabase.createClient(
+    CONFIG.SUPABASE_URL,
+    CONFIG.SUPABASE_ANON_KEY
+  );
+
+  const state = {
+    productScanner: null,
+    productScannerRunning: false,
+
+    batches: [],
+    products: [],
+    suppliers: [],
+    salesUploads: [],
+    salesLines: [],
+
+    loading: {
+      batchSave: false,
+      salesUpload: false,
+      salesSave: false,
+      salesProcess: false,
+      stockCheckSave: false
+    }
+  };
+
+  const $ = (id) => document.getElementById(id);
+  function getCurrentUser() {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function requireLogin() {
+    const user = getCurrentUser();
+    if (!user) {
+      alert("กรุณาเข้าสู่ระบบ");
+      window.location.href = "login.html";
+      return null;
+    }
+    return user;
+  }
+
+  function canAddEdit() {
+    return state.currentUser && ["admin", "user"].includes(state.currentUser.role);
+  }
+
+  function canDelete() {
+    return state.currentUser && state.currentUser.role === "manager";
+  }
+
+  function applyPermissionUI() {
+    const disabled = !canAddEdit();
+    [
+      "productBarcode",
+      "receivedDate",
+      "batchNo",
+      "expiryDate",
+      "quantityReceived",
+      "supplierSearch",
+      "note"
+    ].forEach(id => {
+      const el = $(id);
+      if (el) el.disabled = disabled;
+    });
+
+    const saveBtn = $("saveBtn");
+    const resetBtn = $("resetBtn");
+    const cancelBtn = $("cancelEditBtn");
+    const scanBtn = $("scanBtn");
+    const closeCameraBtn = $("closeCameraBtn");
+    const searchProductBtn = $("searchProductBtn");
+    const regenBatchBtn = $("regenBatchBtn");
+
+    if (saveBtn) saveBtn.style.display = disabled ? "none" : "inline-flex";
+    if (resetBtn) resetBtn.style.display = disabled ? "none" : "inline-flex";
+    if (cancelBtn && disabled) cancelBtn.style.display = "none";
+    if (scanBtn) scanBtn.style.display = disabled ? "none" : "inline-flex";
+    if (closeCameraBtn) closeCameraBtn.style.display = disabled ? "none" : "inline-flex";
+    if (searchProductBtn) searchProductBtn.style.display = disabled ? "none" : "inline-flex";
+    if (regenBatchBtn) regenBatchBtn.style.display = disabled ? "none" : "inline-flex";
+  }
+
+  function showMessage(text, type = "info") {
+    const box = $("messageBox");
+    box.className = "message-box";
+    box.style.display = "block";
+    box.textContent = text;
+
+    if (type === "success") box.classList.add("message-success");
+    else if (type === "error") box.classList.add("message-error");
+    else box.classList.add("message-info");
+  }
+
+  function clearMessage() {
+    const box = $("messageBox");
+    box.className = "message-box";
+    box.textContent = "";
+    box.style.display = "none";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatQty(value) {
+    const num = Number(value ?? 0);
+    if (Number.isNaN(num)) return "0";
+    return num % 1 === 0 ? String(num) : num.toFixed(2);
+  }
+
+  function todayString() {
+    const today = new Date();
+    return today.toISOString().slice(0, 10);
+  }
+
+  function compactTodayString() {
+    return todayString().replaceAll("-", "");
+  }
+
+  function timestampThai() {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, "0");
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const yyyy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mi = String(now.getMinutes()).padStart(2, "0");
+    return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+  }
+
+  function formatDate(value) {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  function setLoadingButton(buttonId, loadingText, isLoading) {
+    const btn = $(buttonId);
+    if (!btn) return;
+    if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
+    btn.disabled = isLoading;
+    btn.textContent = isLoading ? loadingText : btn.dataset.originalText;
+  }
+
+  function calculateDaysLeft(expiryDate) {
+    if (!expiryDate) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const exp = new Date(expiryDate);
+    exp.setHours(0, 0, 0, 0);
+
+    const diff = exp - today;
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  }
+
+  function getStatus(daysLeft) {
+    if (daysLeft === null) return "safe";
+    if (daysLeft < 0) return "expired";
+    if (daysLeft <= CONFIG.WARNING_DAYS) return "warning";
+    return "safe";
+  }
+
+  function getStatusBadge(status) {
+    if (status === "expired") return `<span class="status-badge status-expired">หมดอายุ</span>`;
+    if (status === "warning") return `<span class="status-badge status-warning">ใกล้หมดอายุ</span>`;
+    return `<span class="status-badge status-safe">ปกติ</span>`;
+  }
+
+  function getSalesStatusBadge(status) {
+    if (status === "processed") return `<span class="status-badge status-processed">ประมวลผลแล้ว</span>`;
+    if (status === "reconciled") return `<span class="status-badge status-reconciled">กระทบยอดแล้ว</span>`;
+    if (status === "partial_checked") return `<span class="status-badge status-partial">ตรวจแล้วบางส่วน</span>`;
+    return `<span class="status-badge status-pending">รอประมวลผล</span>`;
+  }
+
+  function getDaysLeftText(daysLeft) {
+    if (daysLeft === null) return "-";
+    if (daysLeft < 0) return `เน€เธเธดเธ ${Math.abs(daysLeft)} เธงเธฑเธ`;
+    if (daysLeft === 0) return "เธงเธฑเธเธเธตเน";
+    return `${daysLeft} เธงเธฑเธ`;
+  }
+
+  function appendNote(oldNote, newLine) {
+    const trimmed = String(oldNote || "").trim();
+    return trimmed ? `${trimmed}\n${newLine}` : newLine;
+  }
+
+  function setFormMode(isEdit) {
+    const badge = $("formModeBadge");
+    const saveBtn = $("saveBtn");
+    const cancelBtn = $("cancelEditBtn");
+
+    if (isEdit) {
+      badge.textContent = "เนเธซเธกเธ”เนเธเนเนเธ";
+      badge.style.background = "#fff7ed";
+      badge.style.color = "#9a3412";
+      saveBtn.textContent = "เธเธฑเธเธ—เธถเธเธเธฒเธฃเนเธเนเนเธ";
+      cancelBtn.style.display = "inline-block";
+    } else {
+      badge.textContent = "เนเธซเธกเธ”เน€เธเธดเนเธก";
+      badge.style.background = "#eef2ff";
+      badge.style.color = "#3730a3";
+      saveBtn.textContent = "เธเธฑเธเธ—เธถเธเธฅเนเธญเธ•เธชเธดเธเธเนเธฒ";
+      cancelBtn.style.display = "none";
+    }
+
+    saveBtn.dataset.originalText = saveBtn.textContent;
+  }
+
+  function clearProductFields() {
+    $("productId").value = "";
+    $("productName").value = "";
+  }
+
+  function clearSupplierSelection() {
+    $("supplierId").value = "";
+    $("supplierSearch").value = "";
+    $("supplierSelectedNote").textContent = "";
+    hideSupplierDropdown();
+  }
+
+  function resetForm() {
+    $("batchForm").reset();
+    $("editId").value = "";
+    $("productId").value = "";
+    $("receivedDate").value = todayString();
+    clearProductFields();
+    clearSupplierSelection();
+    stopProductScanner();
+    regenerateBatchNoSilently();
+    setFormMode(false);
+  }
+
+  function cancelEdit() {
+    resetForm();
+    clearMessage();
+  }
+
+  function clearSearch() {
+    $("searchInput").value = "";
+    $("statusFilter").value = "all";
+    renderBatches();
+  }
+
+  function updateTopSummary() {
+    $("topSummaryCount").textContent = state.batches.length;
+    const totalQty = state.batches.reduce((sum, item) => sum + Number(item.quantity_remaining ?? 0), 0);
+    $("topSummaryQty").textContent = formatQty(totalQty);
+  }
+
+  function findProductByBarcode(barcode) {
+    const target = String(barcode || "").trim().toLowerCase();
+    return state.products.find(item => String(item.barcode || "").trim().toLowerCase() === target);
+  }
+
+  function getAvailableBatchesForProduct(productId) {
+    return state.batches
+      .filter(item =>
+        Number(item.product_id) === Number(productId) &&
+        Number(item.quantity_remaining ?? 0) > 0 &&
+        getStatus(calculateDaysLeft(item.expiry_date)) !== "expired"
+      )
+      .sort((a, b) => new Date(a.expiry_date || "9999-12-31") - new Date(b.expiry_date || "9999-12-31"));
+  }
+
+  async function loadProducts() {
+    const { data, error } = await supabaseClient
+      .from("products")
+      .select("id, barcode, product_name")
+      .order("product_name", { ascending: true });
+
+    if (error) throw error;
+    state.products = data || [];
+  }
+
+  async function loadSuppliers() {
+    const { data, error } = await supabaseClient
+      .from("suppliers")
+      .select("id, name, contact, phone")
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    state.suppliers = data || [];
+  }
+
+  async function loadBatches() {
+    const { data, error } = await supabaseClient
+      .from("batches")
+      .select(`
+        id,
+        product_id,
+        batch_no,
+        received_date,
+        expiry_date,
+        quantity_received,
+        quantity_remaining,
+        supplier_id,
+        status,
+        note,
+        created_at,
+        updated_at,
+        products:product_id (
+          id,
+          barcode,
+          product_name,
+          unit
+        ),
+        suppliers:supplier_id (
+          id,
+          name,
+          contact,
+          phone
+        )
+      `)
+      .order("expiry_date", { ascending: true });
+
+    if (error) throw error;
+
+    state.batches = (data || []).map(item => ({
+      ...item,
+      status: getStatus(calculateDaysLeft(item.expiry_date))
+    }));
+
+    updateTopSummary();
+  }
+
+  async function loadSalesUploads() {
+    const { data, error } = await supabaseClient
+      .from("sales_uploads")
+      .select("id, sales_date, file_name, file_path, file_url, uploaded_at, status, note")
+      .order("sales_date", { ascending: false })
+      .order("uploaded_at", { ascending: false });
+
+    if (error) throw error;
+    state.salesUploads = data || [];
+  }
+
+  async function loadSalesLinesForUpload(uploadId) {
+    if (!uploadId) {
+      state.salesLines = [];
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from("sales_lines")
+      .select("id, sales_upload_id, product_id, product_barcode, product_name, sold_qty, created_at")
+      .eq("sales_upload_id", uploadId)
+      .order("id", { ascending: true });
+
+    if (error) throw error;
+    state.salesLines = data || [];
+  }
+
+  function populateSalesUploadSelect() {
+    const select = $("selectedSalesUpload");
+    const currentValue = select.value;
+
+    select.innerHTML = `<option value="">-- เน€เธฅเธทเธญเธเน€เธญเธเธชเธฒเธฃเธเธฒเธข --</option>` +
+      state.salesUploads.map(item => `
+        <option value="${item.id}">
+          ${formatDate(item.sales_date)} | ${escapeHtml(item.file_name || "เนเธกเนเธกเธตเธเธทเนเธญเนเธเธฅเน")} | ${escapeHtml(item.status || "pending")}
+        </option>
+      `).join("");
+
+    if (state.salesUploads.some(item => String(item.id) === String(currentValue))) {
+      select.value = currentValue;
+    }
+  }
+
+  function renderSalesUploadsList() {
+    const wrap = $("salesUploadsList");
+
+    if (!state.salesUploads.length) {
+      wrap.innerHTML = `<div class="empty-state">เธขเธฑเธเนเธกเนเธกเธตเน€เธญเธเธชเธฒเธฃเธเธฒเธข</div>`;
+      return;
+    }
+
+    wrap.innerHTML = state.salesUploads.slice(0, 12).map(item => `
+      <div class="doc-item">
+        <div class="doc-item-top">
+          <div>
+            <div class="doc-title">${escapeHtml(item.file_name || "-")}</div>
+            <div class="doc-meta">
+              เธงเธฑเธเธ—เธตเนเธเธฒเธข: ${escapeHtml(formatDate(item.sales_date))} |
+              เธญเธฑเธเนเธซเธฅเธ”: ${escapeHtml(formatDate(item.uploaded_at))} |
+              เธชเธ–เธฒเธเธฐ: ${escapeHtml(item.status || "pending")}
+            </div>
+          </div>
+          <div>${getSalesStatusBadge(item.status || "pending")}</div>
+        </div>
+
+        <div class="doc-actions">
+          <button type="button" class="btn-info" onclick="selectSalesUpload(${item.id})">เน€เธฅเธทเธญเธเน€เธญเธเธชเธฒเธฃเธเธตเน</button>
+          <button type="button" class="btn-secondary" onclick="openSalesPdf('${escapeHtml(item.file_url || "")}')">เน€เธเธดเธ” PDF</button>
+          <button type="button" class="btn-warning" onclick="processSalesUploadById(${item.id})">เธเธฃเธฐเธกเธงเธฅเธเธฅเธ•เธฑเธ”เธชเธ•เนเธญเธ</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function autofillProductByBarcode(showAlertWhenNotFound = true) {
+    const barcode = $("productBarcode").value.trim();
+    if (!barcode) {
+      clearProductFields();
+      return;
+    }
+
+    const product = findProductByBarcode(barcode);
+    if (product) {
+      $("productId").value = product.id || "";
+      $("productName").value = product.product_name || "";
+    } else {
+      clearProductFields();
+      if (showAlertWhenNotFound) {
+        alert("เนเธกเนเธเธเธเนเธญเธกเธนเธฅเธชเธดเธเธเนเธฒเธเธฒเธเธเธฒเธฃเนเนเธเนเธ”เธเธตเน เธเธฃเธธเธ“เธฒเน€เธเธดเนเธกเธเนเธญเธกเธนเธฅเธชเธดเธเธเนเธฒเนเธเธ•เธฒเธฃเธฒเธ products เธเนเธญเธ");
+      }
+    }
+  }
+
+  function generateBatchNoFromCache() {
+    const datePart = compactTodayString();
+    const todayBatches = state.batches.filter(item => String(item.batch_no || "").startsWith(`LOT-${datePart}-`));
+
+    let maxSeq = 0;
+    todayBatches.forEach(item => {
+      const parts = String(item.batch_no || "").split("-");
+      const seq = Number(parts[2]);
+      if (!Number.isNaN(seq) && seq > maxSeq) maxSeq = seq;
+    });
+
+    const nextSeq = String(maxSeq + 1).padStart(3, "0");
+    return `LOT-${datePart}-${nextSeq}`;
+  }
+
+  function regenerateBatchNoSilently() {
+    if ($("editId").value) return;
+    $("batchNo").value = generateBatchNoFromCache();
+  }
+
+  function regenerateBatchNo() {
+    if ($("editId").value) {
+      alert("เธเธ“เธฐเนเธเนเนเธ เธฃเธฐเธเธเธเธฐเธเธเน€เธฅเธเธฅเนเธญเธ•เน€เธ”เธดเธกเนเธงเน");
+      return;
+    }
+    $("batchNo").value = generateBatchNoFromCache();
+  }
+
+  async function startProductScanner() {
+    $("productScannerArea").style.display = "block";
+
+    if (!state.productScanner) state.productScanner = new Html5Qrcode("productReader");
+    if (state.productScannerRunning) return;
+
+    try {
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras || !cameras.length) {
+        alert("เนเธกเนเธเธเธเธฅเนเธญเธเธชเธณเธซเธฃเธฑเธเธชเนเธเธ");
+        return;
+      }
+
+      await state.productScanner.start(
+        cameras[0].id,
+        { fps: 10, qrbox: 220 },
+        (decodedText) => {
+          $("productBarcode").value = decodedText;
+          autofillProductByBarcode(true);
+          stopProductScanner();
+        },
+        () => {}
+      );
+
+      state.productScannerRunning = true;
+    } catch (error) {
+      console.error(error);
+      alert("เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เน€เธเธดเธ”เธเธฅเนเธญเธเธชเนเธเธเธชเธดเธเธเนเธฒเนเธ”เน");
+    }
+  }
+
+  async function stopProductScanner() {
+    $("productScannerArea").style.display = "none";
+
+    if (state.productScanner && state.productScannerRunning) {
+      try {
+        await state.productScanner.stop();
+        await state.productScanner.clear();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    state.productScannerRunning = false;
+  }
+
+  function updateStats(allBatches) {
+    const expired = allBatches.filter(item => item.calculated_status === "expired").length;
+    const warning = allBatches.filter(item => item.calculated_status === "warning").length;
+    const safe = allBatches.filter(item => item.calculated_status === "safe").length;
+
+    $("statAll").textContent = allBatches.length;
+    $("statExpired").textContent = expired;
+    $("statWarning").textContent = warning;
+    $("statSafe").textContent = safe;
+  }
+
+  function renderBatches() {
+    const search = $("searchInput").value.trim().toLowerCase();
+    const filter = $("statusFilter").value;
+    const tableBody = $("batchTableBody");
+
+    let allBatches = state.batches.map(item => {
+      const daysLeft = calculateDaysLeft(item.expiry_date);
+      const calculatedStatus = getStatus(daysLeft);
+
+      return {
+        ...item,
+        days_left: daysLeft,
+        calculated_status: calculatedStatus,
+        product_barcode: item.products?.barcode || "",
+        product_name: item.products?.product_name || "-",
+        product_unit: item.products?.unit || "-",
+        supplier_name: item.suppliers?.name || "-"
+      };
+    });
+
+    updateStats(allBatches);
+
+    let filtered = [...allBatches];
+
+    if (search) {
+      filtered = filtered.filter(item =>
+        String(item.product_name || "").toLowerCase().includes(search) ||
+        String(item.product_barcode || "").toLowerCase().includes(search) ||
+        String(item.batch_no || "").toLowerCase().includes(search) ||
+        String(item.supplier_name || "").toLowerCase().includes(search) ||
+        String(item.note || "").toLowerCase().includes(search)
+      );
+    }
+
+    if (filter !== "all") {
+      filtered = filtered.filter(item => item.calculated_status === filter);
+    }
+
+    filtered.sort((a, b) => {
+      const barcodeA = String(a.product_barcode || "").toLowerCase();
+      const barcodeB = String(b.product_barcode || "").toLowerCase();
+
+      if (barcodeA < barcodeB) return -1;
+      if (barcodeA > barcodeB) return 1;
+
+      return new Date(a.expiry_date || "9999-12-31") - new Date(b.expiry_date || "9999-12-31");
+    });
+
+    $("tableInfoText").textContent =
+      search || filter !== "all"
+        ? `พบ ${filtered.length} ล็อต จากทั้งหมด ${allBatches.length} ล็อต`
+        : `แสดงทั้งหมด ${allBatches.length} ล็อต`;
+
+    if (!filtered.length) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="9" class="empty-state">เนเธกเนเธเธเธเนเธญเธกเธนเธฅเธฅเนเธญเธ•เธชเธดเธเธเนเธฒ</td>
+        </tr>
+      `;
+      return;
+    }
+
+    const grouped = {};
+    filtered.forEach(item => {
+      const key = `${item.product_barcode || "NO_BARCODE"}__${item.product_name || "-"}`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+
+    let html = "";
+
+    Object.values(grouped).forEach(groupItems => {
+      const first = groupItems[0];
+      const totalRemaining = groupItems.reduce((sum, row) => sum + Number(row.quantity_remaining ?? 0), 0);
+
+      const batchColumn = groupItems.map(item => `
+        <div class="sub-cell-item">${escapeHtml(item.batch_no || "-")}</div>
+      `).join("");
+
+      const amountColumn = groupItems.map(item => `
+        <div class="sub-cell-item">
+          <div><strong>คงเหลือ:</strong> ${escapeHtml(formatQty(item.quantity_remaining))}</div>
+          <div class="sub-mini-text">รับเข้า: ${escapeHtml(formatQty(item.quantity_received))}</div>
+        </div>
+      `).join("");
+
+      const expireColumn = groupItems.map(item => `
+        <div class="sub-cell-item">
+          <div>${escapeHtml(formatDate(item.expiry_date))}</div>
+          <div class="sub-mini-text">${escapeHtml(getDaysLeftText(item.days_left))}</div>
+        </div>
+      `).join("");
+
+      const supplierColumn = groupItems.map(item => `
+        <div class="sub-cell-item">${escapeHtml(item.supplier_name || "-")}</div>
+      `).join("");
+
+      const statusColumn = groupItems.map(item => `
+        <div class="sub-cell-item">${getStatusBadge(item.calculated_status)}</div>
+      `).join("");
+
+      const noteColumn = groupItems.map(item => `
+        <div class="sub-cell-item">${escapeHtml(item.note || "-")}</div>
+      `).join("");
+
+      const actionColumn = groupItems.map(item => `
+        <div class="sub-cell-item">
+          <div class="action-group">
+            ${canAddEdit() ? `<button type="button" class="btn-warning" onclick="editBatch(${item.id})">Edit</button>` : ""}
+            <button type="button" class="btn-info" onclick="openStockCheckModal(${item.id})">ตรวจนับจริง</button>
+            ${canDelete() ? `<button type="button" class="btn-danger" onclick="deleteBatch(${item.id})">Delete</button>` : ""}
+          </div>
+        </div>
+      `).join("");
+
+      html += `
+        <tr>
+          <td>
+            <div class="product-main-name">${escapeHtml(first.product_name)}</div>
+            <div class="sub-mini-text">หน่วย: ${escapeHtml(first.product_unit || "-")}</div>
+            <div class="product-main-meta">รวม ${groupItems.length} ล็อต | คงเหลือรวม ${escapeHtml(formatQty(totalRemaining))}</div>
+          </td>
+          <td><div class="barcode-main">${escapeHtml(first.product_barcode || "-")}</div></td>
+          <td>${batchColumn}</td>
+          <td>${amountColumn}</td>
+          <td>${expireColumn}</td>
+          <td>${supplierColumn}</td>
+          <td>${statusColumn}</td>
+          <td class="note-cell">${noteColumn}</td>
+          <td>${actionColumn}</td>
+        </tr>
+      `;
+    });
+
+    tableBody.innerHTML = html;
+  }
+
+  function hideSupplierDropdown() {
+    $("supplierDropdown").style.display = "none";
+  }
+
+  function setSelectedSupplier(supplier) {
+    $("supplierId").value = supplier?.id || "";
+    $("supplierSearch").value = supplier?.name || "";
+    $("supplierSelectedNote").textContent = supplier
+      ? `เน€เธฅเธทเธญเธเนเธฅเนเธง: ${supplier.name}${supplier.phone ? " | เนเธ—เธฃ: " + supplier.phone : ""}`
+      : "";
+    hideSupplierDropdown();
+  }
+
+  function chooseSupplierById(id) {
+    const supplier = state.suppliers.find(item => Number(item.id) === Number(id));
+    if (supplier) setSelectedSupplier(supplier);
+  }
+
+  function renderSupplierDropdown(keyword = "") {
+    if (!canAddEdit()) return;
+
+    const dropdown = $("supplierDropdown");
+    const q = keyword.trim().toLowerCase();
+
+    let filtered = state.suppliers;
+    if (q) {
+      filtered = state.suppliers.filter(item =>
+        String(item.name || "").toLowerCase().includes(q) ||
+        String(item.contact || "").toLowerCase().includes(q) ||
+        String(item.phone || "").toLowerCase().includes(q)
+      );
+    }
+
+    if (!filtered.length) {
+      dropdown.innerHTML = `
+        <div class="supplier-option" style="cursor:default;">
+          <div class="supplier-option-name">เนเธกเนเธเธเธเธนเนเธเธณเธซเธเนเธฒเธข</div>
+          <div class="supplier-option-meta">เธฅเธญเธเธเนเธเธซเธฒเธ”เนเธงเธขเธเธทเนเธญ, เธเธนเนเธ•เธดเธ”เธ•เนเธญ, เธซเธฃเธทเธญเน€เธเธญเธฃเนเนเธ—เธฃ</div>
+        </div>
+      `;
+      dropdown.style.display = "block";
+      return;
+    }
+
+    dropdown.innerHTML = filtered.slice(0, 50).map(item => `
+      <div class="supplier-option" onclick="chooseSupplierById(${item.id})">
+        <div class="supplier-option-name">${escapeHtml(item.name || "-")}</div>
+        <div class="supplier-option-meta">
+          ${escapeHtml(item.contact || "-")}
+          ${item.phone ? " | " + escapeHtml(item.phone) : ""}
+        </div>
+      </div>
+    `).join("");
+
+    dropdown.style.display = "block";
+  }
+
+  function editBatch(id) {
+    if (!canAddEdit()) {
+      showMessage("บัญชีนี้ไม่มีสิทธิ์แก้ไขล็อตสินค้า / สต๊อก", "error");
+      return;
+    }
+
+    const item = state.batches.find(batch => Number(batch.id) === Number(id));
+    if (!item) return;
+
+    $("editId").value = item.id;
+    $("productId").value = item.product_id || "";
+    $("productBarcode").value = item.products?.barcode || "";
+    $("productName").value = item.products?.product_name || "";
+    $("receivedDate").value = item.received_date || todayString();
+    $("batchNo").value = item.batch_no || "";
+    $("expiryDate").value = item.expiry_date || "";
+    $("quantityReceived").value = item.quantity_received ?? "";
+    $("note").value = item.note || "";
+
+    if (item.suppliers) setSelectedSupplier(item.suppliers);
+    else clearSupplierSelection();
+
+    setFormMode(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showMessage("กำลังแก้ไขล็อตสินค้า: " + (item.batch_no || "-"), "info");
+  }
+
+  async function deleteBatch(id) {
+    if (!canDelete()) {
+      showMessage("เฉพาะ MANAGER เท่านั้นที่ลบล็อตสินค้า / สต๊อกได้", "error");
+      return;
+    }
+
+    const item = state.batches.find(batch => Number(batch.id) === Number(id));
+    if (!item) return;
+
+    if (!confirm(`เธเธธเธ“เธ•เนเธญเธเธเธฒเธฃเธฅเธเธฅเนเธญเธ• ${item.batch_no || "-"} เนเธเนเธซเธฃเธทเธญเนเธกเน?`)) return;
+
+    try {
+      clearMessage();
+
+      const { error } = await supabaseClient
+        .from("batches")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      await refreshAll();
+      cancelEdit();
+      showMessage("ลบล็อตสินค้าเรียบร้อยแล้ว", "success");
+    } catch (error) {
+      console.error(error);
+      showMessage("ลบล็อตไม่สำเร็จ: " + error.message, "error");
+    }
+  }
+
+  function resetSalesUploadForm() {
+    $("salesUploadForm").reset();
+    $("salesDate").value = todayString();
+  }
+
+  async function uploadSalesPdfAndCreateRecord() {
+    if (state.loading.salesUpload) return;
+
+    const salesDate = $("salesDate").value;
+    const fileInput = $("salesPdf");
+    const note = $("salesUploadNote").value.trim();
+
+    if (!salesDate) return alert("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธงเธฑเธเธ—เธตเนเธเธฒเธข");
+    if (!fileInput.files || !fileInput.files[0]) return alert("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเนเธเธฅเน PDF");
+
+    const file = fileInput.files[0];
+    if (file.type !== "application/pdf") return alert("เธเธฃเธธเธ“เธฒเธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเน PDF เน€เธ—เนเธฒเธเธฑเนเธ");
+
+    const cleanName = file.name.replace(/[^\w.\-]+/g, "_");
+    const filePath = `daily-sales/${salesDate}/${Date.now()}_${cleanName}`;
+
+    try {
+      state.loading.salesUpload = true;
+      setLoadingButton("uploadSalesBtn", "เธเธณเธฅเธฑเธเธญเธฑเธเนเธซเธฅเธ”...", true);
+      clearMessage();
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from(CONFIG.SALES_BUCKET)
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const publicRes = supabaseClient.storage.from(CONFIG.SALES_BUCKET).getPublicUrl(filePath);
+      const fileUrl = publicRes?.data?.publicUrl || null;
+
+      const { data, error } = await supabaseClient
+        .from("sales_uploads")
+        .insert([{
+          sales_date: salesDate,
+          file_name: file.name,
+          file_path: filePath,
+          file_url: fileUrl,
+          status: "pending",
+          note: note || null
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await loadSalesUploads();
+      populateSalesUploadSelect();
+      renderSalesUploadsList();
+
+      if (data?.id) {
+        $("selectedSalesUpload").value = data.id;
+        await onChangeSelectedSalesUpload();
+      }
+
+      resetSalesUploadForm();
+      showMessage("อัปโหลด Daily Sales PDF เรียบร้อยแล้ว", "success");
+    } catch (error) {
+      console.error(error);
+      showMessage("อัปโหลด PDF ไม่สำเร็จ: " + error.message, "error");
+    } finally {
+      state.loading.salesUpload = false;
+      setLoadingButton("uploadSalesBtn", "เธเธณเธฅเธฑเธเธญเธฑเธเนเธซเธฅเธ”...", false);
+    }
+  }
+
+  function generateRowId() {
+    return "row_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+  }
+
+  function addSalesLineRow(line = null) {
+    const wrap = $("salesLineWrap");
+    const rowId = generateRowId();
+
+    const html = `
+      <div class="line-item" data-row-id="${rowId}">
+        <input type="hidden" class="sales-line-db-id" value="${escapeHtml(line?.id || "")}">
+        <input type="hidden" class="sales-line-product-id" value="${escapeHtml(line?.product_id || "")}">
+
+        <div class="line-header">
+          <strong>เธฃเธฒเธขเธเธฒเธฃเธเธฒเธข</strong>
+          <button type="button" class="btn-danger" onclick="removeSalesLineRow('${rowId}')">เธฅเธ</button>
+        </div>
+
+        <div class="line-item-grid">
+          <div class="form-group">
+            <label>เธเธฒเธฃเนเนเธเนเธ”เธชเธดเธเธเนเธฒ *</label>
+            <input type="text" class="sales-line-barcode" value="${escapeHtml(line?.product_barcode || "")}" onblur="autofillSalesLineProduct('${rowId}')">
+          </div>
+
+          <div class="form-group">
+            <label>เธเธทเนเธญเธชเธดเธเธเนเธฒ</label>
+            <input type="text" class="sales-line-name" value="${escapeHtml(line?.product_name || "")}" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>เธเธณเธเธงเธเธเธฒเธข *</label>
+            <input type="number" min="0" step="0.01" class="sales-line-qty" value="${escapeHtml(line?.sold_qty ?? "")}" oninput="updateSalesLineSummary()">
+          </div>
+
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button type="button" class="btn-info" onclick="autofillSalesLineProduct('${rowId}')">เธเนเธเธซเธฒ</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    wrap.insertAdjacentHTML("beforeend", html);
+    updateSalesLineSummary();
+  }
+
+  function removeSalesLineRow(rowId) {
+    const row = document.querySelector(`[data-row-id="${rowId}"]`);
+    if (row) row.remove();
+    updateSalesLineSummary();
+  }
+
+  function autofillSalesLineProduct(rowId) {
+    const row = document.querySelector(`[data-row-id="${rowId}"]`);
+    if (!row) return;
+
+    const barcodeInput = row.querySelector(".sales-line-barcode");
+    const nameInput = row.querySelector(".sales-line-name");
+    const productIdInput = row.querySelector(".sales-line-product-id");
+
+    const barcode = barcodeInput.value.trim();
+    if (!barcode) {
+      nameInput.value = "";
+      productIdInput.value = "";
+      return;
+    }
+
+    const product = findProductByBarcode(barcode);
+    if (!product) {
+      nameInput.value = "";
+      productIdInput.value = "";
+      alert("เนเธกเนเธเธเธชเธดเธเธเนเธฒเนเธเธเธฃเธฃเธ—เธฑเธ”เธเธตเนเธเธฒเธเธเธฒเธฃเนเนเธเนเธ”เธ—เธตเนเธเธฃเธญเธ");
+      return;
+    }
+
+    nameInput.value = product.product_name || "";
+    productIdInput.value = product.id || "";
+  }
+
+  function getSalesLineRows() {
+    return Array.from(document.querySelectorAll("#salesLineWrap .line-item"));
+  }
+
+  function updateSalesLineSummary() {
+    const rows = getSalesLineRows();
+    const count = rows.length;
+
+    let qtyTotal = 0;
+    rows.forEach(row => {
+      const qty = Number(row.querySelector(".sales-line-qty")?.value || 0);
+      qtyTotal += Number.isNaN(qty) ? 0 : qty;
+    });
+
+    $("salesLineCount").textContent = count;
+    $("salesLineQtyTotal").textContent = formatQty(qtyTotal);
+
+    const selectedId = $("selectedSalesUpload").value;
+    if (!selectedId) {
+      $("salesUploadStatusLabel").textContent = "-";
+      return;
+    }
+
+    const upload = state.salesUploads.find(item => String(item.id) === String(selectedId));
+    $("salesUploadStatusLabel").textContent = upload?.status || "-";
+  }
+
+  async function onChangeSelectedSalesUpload() {
+    const uploadId = $("selectedSalesUpload").value;
+    $("salesLineWrap").innerHTML = "";
+
+    if (!uploadId) {
+      state.salesLines = [];
+      updateSalesLineSummary();
+      return;
+    }
+
+    try {
+      await loadSalesLinesForUpload(uploadId);
+
+      if (state.salesLines.length) {
+        state.salesLines.forEach(line => addSalesLineRow(line));
+      } else {
+        updateSalesLineSummary();
+      }
+
+      const upload = state.salesUploads.find(item => String(item.id) === String(uploadId));
+      $("salesUploadStatusLabel").textContent = upload?.status || "-";
+    } catch (error) {
+      console.error(error);
+      showMessage("โหลดรายการขายไม่สำเร็จ: " + error.message, "error");
+    }
+  }
+
+  function normalizeSalesLinesFromUI(uploadId) {
+    const rows = getSalesLineRows();
+    if (!rows.length) throw new Error("เธเธฃเธธเธ“เธฒเน€เธเธดเนเธกเธฃเธฒเธขเธเธฒเธฃเธเธฒเธขเธญเธขเนเธฒเธเธเนเธญเธข 1 เธฃเธฒเธขเธเธฒเธฃ");
+
+    const mergedMap = new Map();
+
+    rows.forEach(row => {
+      const barcode = row.querySelector(".sales-line-barcode").value.trim();
+      const name = row.querySelector(".sales-line-name").value.trim();
+      const productId = row.querySelector(".sales-line-product-id").value.trim();
+      const qty = Number(row.querySelector(".sales-line-qty").value);
+
+      if (!barcode || !name || !productId || Number.isNaN(qty) || qty <= 0) {
+        throw new Error("เธเธฃเธธเธ“เธฒเธเธฃเธญเธเธเนเธญเธกเธนเธฅเธฃเธฒเธขเธเธฒเธฃเธเธฒเธขเนเธซเนเธเธฃเธเธ—เธธเธเธเธฃเธฃเธ—เธฑเธ”");
+      }
+
+      const key = `${productId}__${barcode}`;
+      if (!mergedMap.has(key)) {
+        mergedMap.set(key, {
+          sales_upload_id: Number(uploadId),
+          product_id: Number(productId),
+          product_barcode: barcode,
+          product_name: name,
+          sold_qty: 0
+        });
+      }
+
+      mergedMap.get(key).sold_qty += qty;
+    });
+
+    return Array.from(mergedMap.values());
+  }
+
+  async function saveSalesLines() {
+    if (state.loading.salesSave) return;
+
+    const uploadId = $("selectedSalesUpload").value;
+    if (!uploadId) return alert("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเน€เธญเธเธชเธฒเธฃเธเธฒเธขเธเนเธญเธ");
+
+    let lines;
+    try {
+      lines = normalizeSalesLinesFromUI(uploadId);
+    } catch (error) {
+      return alert(error.message);
+    }
+
+    try {
+      state.loading.salesSave = true;
+      setLoadingButton("saveSalesLinesBtn", "เธเธณเธฅเธฑเธเธเธฑเธเธ—เธถเธ...", true);
+      clearMessage();
+
+      const { error: deleteError } = await supabaseClient
+        .from("sales_lines")
+        .delete()
+        .eq("sales_upload_id", uploadId);
+
+      if (deleteError) throw deleteError;
+
+      const { error: insertError } = await supabaseClient
+        .from("sales_lines")
+        .insert(lines);
+
+      if (insertError) throw insertError;
+
+      await loadSalesLinesForUpload(uploadId);
+      $("salesLineWrap").innerHTML = "";
+      state.salesLines.forEach(line => addSalesLineRow(line));
+
+      showMessage("บันทึกรายการขายเรียบร้อยแล้ว", "success");
+    } catch (error) {
+      console.error(error);
+      showMessage("บันทึกรายการขายไม่สำเร็จ: " + error.message, "error");
+    } finally {
+      state.loading.salesSave = false;
+      setLoadingButton("saveSalesLinesBtn", "เธเธณเธฅเธฑเธเธเธฑเธเธ—เธถเธ...", false);
+    }
+  }
+
+  async function insertStockMovement(entry) {
+    const { error } = await supabaseClient
+      .from("stock_movements")
+      .insert([entry]);
+
+    if (error) throw error;
+  }
+
+  async function processSalesUploadById(uploadId) {
+    $("selectedSalesUpload").value = uploadId;
+    await onChangeSelectedSalesUpload();
+    await processSalesUpload();
+  }
+
+  function buildSalesDeductionPreview(lines) {
+    const preview = [];
+
+    for (const line of lines) {
+      const batches = getAvailableBatchesForProduct(line.product_id);
+      if (!batches.length) {
+        preview.push(`- ${line.product_name}: เนเธกเนเธกเธตเธฅเนเธญเธ•เธเธฒเธขเนเธ”เน`);
+        continue;
+      }
+
+      let remain = Number(line.sold_qty);
+      const parts = [];
+
+      for (const batch of batches) {
+        if (remain <= 0) break;
+
+        const deductQty = Math.min(Number(batch.quantity_remaining ?? 0), remain);
+        if (deductQty > 0) {
+          parts.push(`${batch.batch_no}=${formatQty(deductQty)}`);
+          remain -= deductQty;
+        }
+      }
+
+      if (remain > 0) {
+        preview.push(`- ${line.product_name}: เธชเธ•เนเธญเธเนเธกเนเธเธญ เธเธฒเธ” ${formatQty(remain)}`);
+      } else {
+        preview.push(`- ${line.product_name}: ${parts.join(", ")}`);
+      }
+    }
+
+    return preview;
+  }
+
+  async function processSalesUpload() {
+    if (state.loading.salesProcess) return;
+
+    const uploadId = $("selectedSalesUpload").value;
+    if (!uploadId) return alert("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเน€เธญเธเธชเธฒเธฃเธเธฒเธขเธเนเธญเธ");
+
+    const upload = state.salesUploads.find(item => String(item.id) === String(uploadId));
+    if (!upload) return alert("เนเธกเนเธเธเน€เธญเธเธชเธฒเธฃเธเธฒเธข");
+
+    await loadSalesLinesForUpload(uploadId);
+    if (!state.salesLines.length) return alert("เน€เธญเธเธชเธฒเธฃเธเธตเนเธขเธฑเธเนเธกเนเธกเธตเธฃเธฒเธขเธเธฒเธฃเธเธฒเธข");
+
+    const preview = buildSalesDeductionPreview(state.salesLines);
+
+    const confirmed = confirm(
+      `เธขเธทเธเธขเธฑเธเธเธฃเธฐเธกเธงเธฅเธเธฅเธ•เธฑเธ”เธชเธ•เนเธญเธเธเธฒเธเน€เธญเธเธชเธฒเธฃ ${upload.file_name || "-"} ?\n\n` +
+      preview.slice(0, 15).join("\n") +
+      (preview.length > 15 ? `\n... เนเธฅเธฐเธญเธตเธ ${preview.length - 15} เธฃเธฒเธขเธเธฒเธฃ` : "")
+    );
+    if (!confirmed) return;
+
+    try {
+      state.loading.salesProcess = true;
+      setLoadingButton("processSalesBtn", "เธเธณเธฅเธฑเธเธเธฃเธฐเธกเธงเธฅเธเธฅ...", true);
+      clearMessage();
+
+      for (const line of state.salesLines) {
+        let remainToDeduct = Number(line.sold_qty);
+        const batches = getAvailableBatchesForProduct(line.product_id);
+
+        if (!batches.length) {
+          throw new Error(`เนเธกเนเธเธเธฅเนเธญเธ•เธ—เธตเนเธเธฒเธขเนเธ”เนเธชเธณเธซเธฃเธฑเธเธชเธดเธเธเนเธฒ ${line.product_name}`);
+        }
+
+        const totalAvailable = batches.reduce((sum, item) => sum + Number(item.quantity_remaining ?? 0), 0);
+        if (remainToDeduct > totalAvailable) {
+          throw new Error(`เธชเธ•เนเธญเธเธชเธดเธเธเนเธฒ ${line.product_name} เนเธกเนเธเธญเธชเธณเธซเธฃเธฑเธเธขเธญเธ”เธเธฒเธข ${formatQty(remainToDeduct)}`);
+        }
+
+        for (const batch of batches) {
+          if (remainToDeduct <= 0) break;
+
+          const currentRemaining = Number(batch.quantity_remaining ?? 0);
+          if (currentRemaining <= 0) continue;
+
+          const deductQty = Math.min(currentRemaining, remainToDeduct);
+          const newRemaining = currentRemaining - deductQty;
+
+          const salesNote = `[${timestampThai()}] เธ•เธฑเธ”เธเธฒเธ Daily Sales PDF ${upload.file_name || "-"} | Qty ${formatQty(deductQty)} | เธเธเน€เธซเธฅเธทเธญ ${formatQty(newRemaining)}`;
+          const newNote = appendNote(batch.note, salesNote);
+
+          const { error: updateError } = await supabaseClient
+            .from("batches")
+            .update({
+              quantity_remaining: newRemaining,
+              note: newNote,
+              status: getStatus(calculateDaysLeft(batch.expiry_date))
+            })
+            .eq("id", batch.id);
+
+          if (updateError) throw updateError;
+
+          await insertStockMovement({
+            batch_id: batch.id,
+            product_id: batch.product_id,
+            movement_type: "sales_deduct",
+            qty_in: 0,
+            qty_out: deductQty,
+            balance_after: newRemaining,
+            reference_type: "sales_upload",
+            reference_id: Number(uploadId),
+            note: `เธ•เธฑเธ”เธเธฒเธ Daily Sales PDF: ${upload.file_name || "-"} | ${line.product_name || "-"}`
+          });
+
+          batch.quantity_remaining = newRemaining;
+          batch.note = newNote;
+          remainToDeduct -= deductQty;
+        }
+      }
+
+      const { error: uploadStatusError } = await supabaseClient
+        .from("sales_uploads")
+        .update({ status: "processed" })
+        .eq("id", uploadId);
+
+      if (uploadStatusError) throw uploadStatusError;
+
+      await refreshAll();
+      await onChangeSelectedSalesUpload();
+      showMessage("ประมวลผลตัดสต๊อกจากเอกสารขายเรียบร้อยแล้ว", "success");
+    } catch (error) {
+      console.error(error);
+      showMessage("ประมวลผลตัดสต๊อกไม่สำเร็จ: " + error.message, "error");
+    } finally {
+      state.loading.salesProcess = false;
+      setLoadingButton("processSalesBtn", "เธเธณเธฅเธฑเธเธเธฃเธฐเธกเธงเธฅเธเธฅ...", false);
+    }
+  }
+
+  function selectSalesUpload(id) {
+    $("selectedSalesUpload").value = id;
+    onChangeSelectedSalesUpload();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openSalesPdf(url) {
+    if (!url) return alert("เนเธกเนเธเธ URL เธเธญเธ PDF");
+    window.open(url, "_blank");
+  }
+
+  function openStockCheckModal(id) {
+    const item = state.batches.find(batch => Number(batch.id) === Number(id));
+    if (!item) return;
+
+    $("stockCheckBatchId").value = item.id;
+    $("stockCheckProductName").textContent = item.products?.product_name || "-";
+    $("stockCheckBatchNo").textContent = item.batch_no || "-";
+    $("stockCheckSystemQty").textContent = formatQty(item.quantity_remaining);
+    $("stockCheckExpiryDate").textContent = formatDate(item.expiry_date);
+    $("checkedQty").value = item.quantity_remaining ?? 0;
+    $("stockCheckNote").value = "";
+    $("adjustAfterCheck").value = "check_only";
+
+    previewVariance();
+    $("stockCheckModalBackdrop").classList.add("show");
+  }
+
+  function closeStockCheckModal() {
+    $("stockCheckModalBackdrop").classList.remove("show");
+    $("stockCheckBatchId").value = "";
+    $("checkedQty").value = "";
+    $("variancePreview").value = "";
+    $("stockCheckNote").value = "";
+    $("adjustAfterCheck").value = "check_only";
+  }
+
+  function previewVariance() {
+    const batchId = $("stockCheckBatchId").value;
+    const checkedQty = Number($("checkedQty").value);
+    const row = state.batches.find(batch => String(batch.id) === String(batchId));
+
+    if (!row || Number.isNaN(checkedQty)) {
+      $("variancePreview").value = "";
+      return;
+    }
+
+    const systemQty = Number(row.quantity_remaining ?? 0);
+    const variance = checkedQty - systemQty;
+
+    $("variancePreview").value =
+      variance === 0 ? "เธ•เธฃเธ" : variance > 0 ? `เน€เธเธดเธ +${formatQty(variance)}` : `เธเธฒเธ” ${formatQty(Math.abs(variance))}`;
+  }
+
+  async function submitStockCheck() {
+    if (state.loading.stockCheckSave) return;
+
+    const batchId = $("stockCheckBatchId").value;
+    const checkedQty = Number($("checkedQty").value);
+    const action = $("adjustAfterCheck").value;
+    const note = $("stockCheckNote").value.trim();
+
+    if (!batchId) return alert("เนเธกเนเธเธเธเนเธญเธกเธนเธฅเธฅเนเธญเธ•");
+    if (Number.isNaN(checkedQty) || checkedQty < 0) return alert("เธเธฃเธธเธ“เธฒเธเธฃเธญเธเธเธณเธเธงเธเธ—เธตเนเธเธฑเธเนเธ”เนเธเธฃเธดเธเนเธซเนเธ–เธนเธเธ•เนเธญเธ");
+    if (!note) return alert("เธเธฃเธธเธ“เธฒเธเธฃเธญเธเธซเธกเธฒเธขเน€เธซเธ•เธธ");
+
+    const item = state.batches.find(batch => String(batch.id) === String(batchId));
+    if (!item) return alert("เนเธกเนเธเธเธฅเนเธญเธ•เธ—เธตเนเธ•เนเธญเธเธเธฒเธฃเธ•เธฃเธงเธเธเธฑเธ");
+
+    const systemQty = Number(item.quantity_remaining ?? 0);
+    const variance = checkedQty - systemQty;
+
+    const confirmed = confirm(
+      `เธขเธทเธเธขเธฑเธเธเธฑเธเธ—เธถเธเธเธฅเธ•เธฃเธงเธเธเธฑเธเธฅเนเธญเธ• ${item.batch_no || "-"} ?\n` +
+      `เธขเธญเธ”เธฃเธฐเธเธ: ${formatQty(systemQty)}\n` +
+      `เธขเธญเธ”เธเธฃเธดเธ: ${formatQty(checkedQty)}\n` +
+      `เธชเนเธงเธเธ•เนเธฒเธ: ${variance > 0 ? "+" : ""}${formatQty(variance)}`
+    );
+    if (!confirmed) return;
+
+    try {
+      state.loading.stockCheckSave = true;
+      setLoadingButton("stockCheckBtn", "เธเธณเธฅเธฑเธเธเธฑเธเธ—เธถเธ...", true);
+      clearMessage();
+
+      const { error: checkError } = await supabaseClient
+        .from("stock_checks")
+        .insert([{
+          batch_id: Number(batchId),
+          checked_qty: checkedQty,
+          system_qty: systemQty,
+          variance_qty: variance,
+          check_date: todayString(),
+          note
+        }]);
+
+      if (checkError) throw checkError;
+
+      if (action === "adjust_system" && variance !== 0) {
+        const adjustText = `[${timestampThai()}] เธเธฃเธฑเธเธเธฒเธเธเธฒเธฃเธ•เธฃเธงเธเธเธฑเธเธเธฃเธดเธ | เน€เธ”เธดเธก ${formatQty(systemQty)} | เนเธซเธกเน ${formatQty(checkedQty)} | เธชเนเธงเธเธ•เนเธฒเธ ${variance > 0 ? "+" : ""}${formatQty(variance)} | ${note}`;
+        const newNote = appendNote(item.note, adjustText);
+
+        const { error: batchError } = await supabaseClient
+          .from("batches")
+          .update({
+            quantity_remaining: checkedQty,
+            note: newNote,
+            status: getStatus(calculateDaysLeft(item.expiry_date))
+          })
+          .eq("id", batchId);
+
+        if (batchError) throw batchError;
+
+        await insertStockMovement({
+          batch_id: item.id,
+          product_id: item.product_id,
+          movement_type: variance > 0 ? "adjust_increase" : "adjust_decrease",
+          qty_in: variance > 0 ? Math.abs(variance) : 0,
+          qty_out: variance < 0 ? Math.abs(variance) : 0,
+          balance_after: checkedQty,
+          reference_type: "stock_check",
+          reference_id: null,
+          note: `เธเธฃเธฑเธเธเธฒเธเธเธฒเธฃเธ•เธฃเธงเธเธเธฑเธเธเธฃเธดเธ | ${note}`
+        });
+      }
+
+      await refreshAll();
+
+      const selectedUploadId = $("selectedSalesUpload").value;
+      if (selectedUploadId) {
+        const { error: statusError } = await supabaseClient
+          .from("sales_uploads")
+          .update({ status: "partial_checked" })
+          .eq("id", selectedUploadId);
+
+        if (!statusError) {
+          await loadSalesUploads();
+          populateSalesUploadSelect();
+          renderSalesUploadsList();
+          $("selectedSalesUpload").value = selectedUploadId;
+          await onChangeSelectedSalesUpload();
+        }
+      }
+
+      closeStockCheckModal();
+      showMessage("บันทึกผลตรวจนับเรียบร้อยแล้ว", "success");
+    } catch (error) {
+      console.error(error);
+      showMessage("บันทึกผลตรวจนับไม่สำเร็จ: " + error.message, "error");
+    } finally {
+      state.loading.stockCheckSave = false;
+      setLoadingButton("stockCheckBtn", "เธเธณเธฅเธฑเธเธเธฑเธเธ—เธถเธ...", false);
+    }
+  }
+
+  async function refreshAll() {
+    await Promise.all([
+      loadProducts(),
+      loadSuppliers(),
+      loadBatches(),
+      loadSalesUploads()
+    ]);
+
+    populateSalesUploadSelect();
+    renderSalesUploadsList();
+    renderBatches();
+    regenerateBatchNoSilently();
+    updateSalesLineSummary();
+  }
+
+  async function saveBatchForm(e) {
+    e.preventDefault();
+    if (state.loading.batchSave) return;
+
+    if (!canAddEdit()) {
+      showMessage("บัญชีนี้ไม่มีสิทธิ์เพิ่มหรือแก้ไขล็อตสินค้า / สต๊อก", "error");
+      return;
+    }
+
+    try {
+      clearMessage();
+
+      const editId = $("editId").value;
+      const productId = $("productId").value.trim();
+      const productBarcode = $("productBarcode").value.trim();
+      const productName = $("productName").value.trim();
+      const receivedDate = $("receivedDate").value || todayString();
+      const batchNo = $("batchNo").value.trim();
+      const expiryDate = $("expiryDate").value;
+      const quantityReceived = $("quantityReceived").value;
+      const supplierId = $("supplierId").value;
+      const note = $("note").value.trim();
+
+      if (!productBarcode || !productId || !productName || !batchNo || !expiryDate || quantityReceived === "") {
+        return alert("เธเธฃเธธเธ“เธฒเธเธฃเธญเธเธเนเธญเธกเธนเธฅเนเธซเนเธเธฃเธ");
+      }
+
+      const duplicateBatchNo = state.batches.some(item =>
+        String(item.id) !== String(editId) &&
+        String(item.batch_no || "").toLowerCase() === batchNo.toLowerCase()
+      );
+
+      if (duplicateBatchNo) return alert("เน€เธฅเธเธฅเนเธญเธ•เธเธตเนเธกเธตเธญเธขเธนเนเนเธฅเนเธง");
+
+      const qtyReceivedNum = Number(quantityReceived);
+      if (Number.isNaN(qtyReceivedNum) || qtyReceivedNum < 0) {
+        return alert("เธเธณเธเธงเธเธฃเธฑเธเน€เธเนเธฒเธ•เนเธญเธเน€เธเนเธเธ•เธฑเธงเน€เธฅเธเธ•เธฑเนเธเนเธ•เน 0 เธเธถเนเธเนเธ");
+      }
+
+      const calculatedStatus = getStatus(calculateDaysLeft(expiryDate));
+      let qtyRemainingNum = qtyReceivedNum;
+
+      if (editId) {
+        const oldItem = state.batches.find(item => String(item.id) === String(editId));
+        if (oldItem) {
+          const oldReceived = Number(oldItem.quantity_received ?? 0);
+          const oldRemaining = Number(oldItem.quantity_remaining ?? 0);
+          const usedQty = Math.max(oldReceived - oldRemaining, 0);
+          qtyRemainingNum = Math.max(qtyReceivedNum - usedQty, 0);
+        }
+      }
+
+      const payload = {
+        product_id: Number(productId),
+        batch_no: batchNo,
+        received_date: receivedDate || null,
+        expiry_date: expiryDate,
+        quantity_received: qtyReceivedNum,
+        quantity_remaining: qtyRemainingNum,
+        supplier_id: supplierId ? Number(supplierId) : null,
+        status: calculatedStatus,
+        note: note || null
+      };
+
+      state.loading.batchSave = true;
+      setLoadingButton("saveBtn", "เธเธณเธฅเธฑเธเธเธฑเธเธ—เธถเธ...", true);
+
+      if (editId) {
+        const { error } = await supabaseClient.from("batches").update(payload).eq("id", editId);
+        if (error) throw error;
+        showMessage("แก้ไขข้อมูลล็อตสินค้าเรียบร้อยแล้ว", "success");
+      } else {
+        const { data, error } = await supabaseClient
+          .from("batches")
+          .insert([payload])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        await insertStockMovement({
+          batch_id: data.id,
+          product_id: Number(productId),
+          movement_type: "receive",
+          qty_in: qtyReceivedNum,
+          qty_out: 0,
+          balance_after: qtyRemainingNum,
+          reference_type: "batch_receive",
+          reference_id: data.id,
+          note: `เธฃเธฑเธเน€เธเนเธฒเน€เธฅเธเธฅเนเธญเธ• ${batchNo}`
+        });
+
+        showMessage("บันทึกล็อตสินค้าเรียบร้อยแล้ว", "success");
+      }
+
+      await refreshAll();
+      resetForm();
+    } catch (error) {
+      console.error(error);
+      showMessage("บันทึกล็อตสินค้าไม่สำเร็จ: " + error.message, "error");
+    } finally {
+      state.loading.batchSave = false;
+      setLoadingButton("saveBtn", "เธเธณเธฅเธฑเธเธเธฑเธเธ—เธถเธ...", false);
+    }
+  }
+
+  function bindEvents() {
+    $("productBarcode").addEventListener("change", () => autofillProductByBarcode(false));
+    $("productBarcode").addEventListener("blur", () => autofillProductByBarcode(false));
+
+    $("supplierSearch").addEventListener("focus", function () {
+      renderSupplierDropdown(this.value);
+    });
+
+    $("supplierSearch").addEventListener("input", function () {
+      $("supplierId").value = "";
+      $("supplierSelectedNote").textContent = "";
+      renderSupplierDropdown(this.value);
+    });
+
+    $("supplierSearch").addEventListener("blur", function () {
+      setTimeout(() => {
+        hideSupplierDropdown();
+
+        const supplierId = $("supplierId").value;
+        const typedName = $("supplierSearch").value.trim();
+
+        if (!supplierId && typedName) {
+          const exactMatch = state.suppliers.find(item =>
+            String(item.name || "").trim().toLowerCase() === typedName.toLowerCase()
+          );
+          if (exactMatch) setSelectedSupplier(exactMatch);
+        }
+      }, 180);
+    });
+
+    document.addEventListener("click", function (e) {
+      const wrap = document.querySelector(".supplier-search-wrap");
+      if (wrap && !wrap.contains(e.target)) hideSupplierDropdown();
+    });
+
+    $("stockCheckModalBackdrop").addEventListener("click", function (e) {
+      if (e.target.id === "stockCheckModalBackdrop") closeStockCheckModal();
+    });
+
+    $("salesUploadForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      await uploadSalesPdfAndCreateRecord();
+    });
+
+    $("batchForm").addEventListener("submit", saveBatchForm);
+
+    window.addEventListener("beforeunload", async function () {
+      await stopProductScanner();
+    });
+  }
+
+  async function initPage() {
+    try {
+      const user = requireLogin();
+      if (!user) return;
+      state.currentUser = user;
+      applyPermissionUI();
+
+      showMessage("กำลังโหลดข้อมูลจาก Supabase...", "info");
+
+      $("salesDate").value = todayString();
+      $("receivedDate").value = todayString();
+
+      [
+        "uploadSalesBtn",
+        "saveSalesLinesBtn",
+        "processSalesBtn",
+        "saveBtn",
+        "stockCheckBtn"
+      ].forEach(id => {
+        const btn = $(id);
+        if (btn) btn.dataset.originalText = btn.textContent;
+      });
+
+      setFormMode(false);
+      bindEvents();
+      await refreshAll();
+      clearMessage();
+    } catch (error) {
+      console.error(error);
+      showMessage("โหลดข้อมูลไม่สำเร็จ: " + error.message, "error");
+    }
+  }
+
+  initPage();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>ผู้ใช้และสิทธิ์ - ระบบจัดการงานส่งสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="users">
+  <aside class="sidebar">
+    <h2>Sophon Driver</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="line_orders.html">รับออเดอร์ Line</a>
+    <a href="confirm_orders.html">ยืนยันรายละเอียด</a>
+    <a href="orders.html">คำสั่งซื้อ</a>
+    <a href="planning.html">วางแผนจัดส่ง</a>
+    <a href="driver.html">หน้าคนขับ</a>
+    <a href="reports.html">รายงานผลงาน</a>
+    <a href="users.html" class="active">ผู้ใช้และสิทธิ์</a>
+  </aside>
+  <main class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>ผู้ใช้และสิทธิ์</h1>
+        <p>เพิ่มผู้ใช้จริงของระบบและกำหนดบทบาทตามการทำงาน</p>
+      </div>
+    </div>
+    <div class="main-grid">
+      <div class="left-stack">
+        <div class="card">
+          <h2>เพิ่มผู้ใช้</h2>
+          <form id="userForm" class="form-grid-single">
+            <label>ชื่อผู้ใช้<input name="name" required></label>
+            <label>บทบาท
+              <select name="role" required>
+                <option value="Admin">ผู้ดูแลระบบ</option>
+                <option value="Manager">ผู้จัดการ</option>
+                <option value="Driver">พนักงานขับรถ</option>
+              </select>
+            </label>
+            <label>เบอร์โทร<input name="phone"></label>
+            <label>พื้นที่รับผิดชอบ<input name="area"></label>
+            <label>ประเภทรถ<input name="vehicleType" placeholder="เช่น รถกระบะ / รถตู้ / 6 ล้อ"></label>
+            <label>จำนวนงานสูงสุดต่อรอบ<input name="maxOrders" type="number" min="1" placeholder="เช่น 15"></label>
+            <button type="submit" class="btn btn-primary">บันทึกผู้ใช้</button>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <h2>รายชื่อผู้ใช้</h2>
+        <div id="usersTableWrap"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

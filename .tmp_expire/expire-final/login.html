@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เข้าสู่ระบบ - ระบบติดตามวันหมดอายุ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Prompt", Arial, sans-serif;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .login-card {
+      background: white;
+      padding: 32px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      box-sizing: border-box;
+    }
+
+    .login-card h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+      text-align: center;
+      color: #111827;
+    }
+
+    .login-card p {
+      text-align: center;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+      color: #111827;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      box-sizing: border-box;
+      font-family: "Prompt", Arial, sans-serif;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #4f46e5;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: "Prompt", Arial, sans-serif;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #4338ca;
+    }
+
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .error {
+      color: #dc2626;
+      font-size: 13px;
+      margin-top: 12px;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .success {
+      color: #059669;
+      font-size: 13px;
+      margin-top: 12px;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .footer {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .demo-box {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.7;
+    }
+
+    .demo-box strong {
+      color: #111827;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-card">
+    <h1>ระบบติดตามวันหมดอายุ</h1>
+    <p>กรุณาเข้าสู่ระบบเพื่อใช้งาน</p>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">ชื่อผู้ใช้</label>
+        <input type="text" id="username" autocomplete="username" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">รหัสผ่าน</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+
+      <button type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+
+      <div class="error" id="errorMsg"></div>
+      <div class="success" id="successMsg"></div>
+    </form>
+
+    <div class="hint">
+      ระบบจะตรวจสอบชื่อผู้ใช้และรหัสผ่านจากฐานข้อมูล Supabase
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://uaqljdqtitdpctjxhutv.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_acbHgymVZkSQv0cHco0WWw_2Aipv9hL";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById("loginForm");
+    const errorMsg = document.getElementById("errorMsg");
+    const successMsg = document.getElementById("successMsg");
+    const loginBtn = document.getElementById("loginBtn");
+
+    function setError(message = "") {
+      errorMsg.textContent = message;
+      successMsg.textContent = "";
+    }
+
+    function setSuccess(message = "") {
+      successMsg.textContent = message;
+      errorMsg.textContent = "";
+    }
+
+    function setLoading(isLoading) {
+      loginBtn.disabled = isLoading;
+      loginBtn.textContent = isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ";
+    }
+
+    function clearMessages() {
+      errorMsg.textContent = "";
+      successMsg.textContent = "";
+    }
+
+    function getRoleLabel(role) {
+      if (role === "admin") return "ผู้ดูแลระบบ";
+      if (role === "manager") return "ผู้จัดการ";
+      return "ผู้ใช้งาน";
+    }
+
+    function saveUserSession(user) {
+      localStorage.setItem("user", JSON.stringify({
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name || user.username,
+        role: user.role || "user",
+        loginAt: new Date().toISOString()
+      }));
+    }
+
+    function redirectIfLoggedIn() {
+      try {
+        const existingUser = JSON.parse(localStorage.getItem("user"));
+        if (existingUser && existingUser.username) {
+          window.location.href = "dashboard.html";
+        }
+      } catch (e) {
+        localStorage.removeItem("user");
+      }
+    }
+
+  // ใช้ตาราง app_users สำหรับเข้าสู่ระบบ
+  async function loginWithUsersTable(username, password) {
+    const { data, error } = await supabaseClient
+      .from("app_users")
+      .select("id, username, password, full_name, role")
+      .eq("username", username)
+      .eq("password", password)
+      .single();
+
+    if (error || !data) {
+      throw new Error("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+    }
+
+    return data;
+  }
+
+  form.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    clearMessages();
+
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+      setError("กรุณากรอกชื่อผู้ใช้และรหัสผ่าน");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setSuccess("กำลังตรวจสอบข้อมูล...");
+
+      const user = await loginWithUsersTable(username, password);
+
+      saveUserSession(user);
+
+      setSuccess(
+        "เข้าสู่ระบบสำเร็จ (" + getRoleLabel(user.role) + ")"
+      );
+
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 600);
+
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(err.message || "เกิดข้อผิดพลาดในการเข้าสู่ระบบ");
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  redirectIfLoggedIn();
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-slate-100 font-sans text-slate-900 antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  @apply text-inherit no-underline;
+}
+
+::selection {
+  @apply bg-brand-200 text-slate-950;
+}
+
+input,
+textarea,
+select {
+  @apply w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100;
+}
+
+textarea {
+  @apply min-h-[96px] resize-y;
+}
+
+button {
+  @apply transition duration-200 ease-out;
+}
+
+table {
+  @apply min-w-full;
+}
+
+:where([class*="rounded"]):not(.rounded-full) {
+  border-radius: 8px !important;
+}
+
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+button,
+a[class*="bg-"],
+a[class*="border"] {
+  @apply shadow-sm;
+}
+
+button:active,
+a[class*="bg-"]:active,
+a[class*="border"]:active {
+  transform: translateY(1px);
+}
+
+thead {
+  @apply bg-slate-50/90;
+}
+
+tbody tr {
+  @apply transition-colors;
+}
+
+@media (max-width: 640px) {
+  body {
+    @apply bg-white;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply px-3 py-3 text-base;
+  }
+
+  textarea {
+    @apply min-h-[84px];
+  }
+
+  button,
+  a[class*="bg-"],
+  a[class*="border"] {
+    min-height: 44px;
+  }
+
+  button {
+    @apply w-full justify-center;
+  }
+
+  .overflow-x-auto {
+    margin-inline: -0.5rem;
+    padding-inline: 0.5rem;
+    padding-bottom: 0.5rem;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-inline: contain;
+    position: relative;
+  }
+
+  .overflow-x-auto > table,
+  .overflow-x-auto > div {
+    scroll-snap-align: start;
+  }
+
+  .overflow-x-auto:has(table)::before {
+    content: "เลื่อนตารางซ้าย-ขวาเพื่อดูข้อมูลทั้งหมด";
+    display: block;
+    margin-bottom: 0.5rem;
+    color: rgb(100 116 139);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .overflow-x-auto:has(table)::after {
+    content: "";
+    pointer-events: none;
+    position: sticky;
+    right: -0.5rem;
+    top: 1.75rem;
+    float: right;
+    width: 28px;
+    height: 100%;
+    min-height: 160px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.92));
+  }
+
+  .overflow-x-auto table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .overflow-x-auto th:first-child,
+  .overflow-x-auto td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: white;
+    box-shadow: 8px 0 16px rgba(15, 23, 42, 0.06);
+  }
+
+  .overflow-x-auto th:first-child {
+    z-index: 2;
+    background: rgb(248 250 252);
+  }
+
+  th,
+  td {
+    @apply px-3 py-3;
+  }
+
+  section,
+  form,
+  label {
+    min-width: 0;
+  }
+}

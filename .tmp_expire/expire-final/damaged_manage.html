@@ -1,0 +1,1150 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>แจ้งสินค้าชำรุด</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css?v=20260402-sidebar">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <style>
+    .page-grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .summary-box .value.text-danger { color: #dc2626; }
+    .summary-box .value.text-purple { color: #7c3aed; }
+    .summary-box .value.text-warning { color: #d97706; }
+    .summary-box .value.text-primary { color: #4f46e5; }
+
+    .subtext {
+      margin: -8px 0 16px;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .hint-box {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      color: #475569;
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+
+    .readonly-box {
+      width: 100%;
+      min-height: 46px;
+      padding: 11px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      color: #334155;
+      font-size: 14px;
+    }
+
+    .readonly-box.alert {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+      font-weight: 700;
+    }
+
+    .batch-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .meta-note {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .mode-badge {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #fee2e2;
+      color: #991b1b;
+      vertical-align: middle;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      width: 100%;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .search-wrap input {
+      padding-left: 42px;
+      width: 100%;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      font-size: 15px;
+    }
+
+    .toolbar-select {
+      min-width: 180px;
+    }
+
+    .table-info {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-pending {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+
+    .status-contacted {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .status-returned {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .status-disposed {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .id-badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .muted-text {
+      color: #6b7280;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #777;
+      padding: 28px;
+    }
+
+    @media (max-width: 1150px) {
+      .page-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .summary-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .batch-info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .summary-row {
+        grid-template-columns: 1fr;
+      }
+
+      .action-group,
+      .form-actions {
+        flex-direction: column;
+      }
+
+      .action-group button,
+      .form-actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>เมนู</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="suppliers.html">ผู้จำหน่าย</a>
+    <a href="products.html">สินค้า</a>
+    <a href="stock_in.html">รับสินค้าเข้า</a>
+    <a href="stock_out.html">ตัดสต๊อก / ตรวจนับ</a>
+    <a href="expire_returns.html">จัดการของหมดอายุ / ชำรุด</a>
+    <a href="expired_history.html">ประวัติคืน / ตัดออก</a>
+    <a href="damaged_manage.html" class="active">แจ้งสินค้าชำรุด</a>
+  </div>
+
+  <div class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>
+          แจ้งสินค้าชำรุด
+          <span class="mode-badge">Damage Report</span>
+        </h1>
+        <p>ค้นหาและเลือกล็อตได้จาก barcode, รหัสสินค้า, ชื่อสินค้า และ batch no</p>
+      </div>
+
+      <div class="topbar-right">
+        <button type="button" class="btn-secondary" onclick="loadData()">รีเฟรช</button>
+      </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <div class="summary-row">
+      <div class="summary-box">
+        <div class="label">จำนวนรายการชำรุด</div>
+        <div class="value text-primary" id="statCount">0</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">จำนวนชำรุดรวม</div>
+        <div class="value text-danger" id="statQty">0</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">ล็อตที่มีการแจ้ง</div>
+        <div class="value text-purple" id="statBatch">0</div>
+      </div>
+      <div class="summary-box">
+        <div class="label">รอตรวจสอบ</div>
+        <div class="value text-warning" id="statPending">0</div>
+      </div>
+    </div>
+
+    <div class="page-grid">
+      <div class="card">
+        <h2>แจ้งสินค้าชำรุด</h2>
+        <p class="subtext">พิมพ์ barcode หรือรหัสสินค้าเพื่อค้นหาล็อตได้ทันที</p>
+
+        <div class="hint-box">
+          ถ้ายังไม่เจอล็อต ให้เปิด F12 แล้วดู Console:
+          <strong>products raw</strong>,
+          <strong>suppliers raw</strong>,
+          <strong>batches raw</strong>,
+          <strong>batches mapped</strong>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="batchSearchInput">ค้นหาล็อตสินค้า</label>
+            <input
+              type="text"
+              id="batchSearchInput"
+              placeholder="ค้นหาด้วย barcode / รหัสสินค้า / ชื่อสินค้า / batch no"
+              oninput="renderBatchOptions()"
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="batchSelect">เลือกล็อตสินค้า *</label>
+            <select id="batchSelect" onchange="fillBatchInfo()">
+              <option value="">-- เลือกล็อตสินค้า --</option>
+            </select>
+          </div>
+
+          <div class="batch-info-grid full">
+            <div class="form-group">
+              <label>ชื่อสินค้า</label>
+              <div class="readonly-box" id="showProduct">-</div>
+            </div>
+
+            <div class="form-group">
+              <label>ล็อต</label>
+              <div class="readonly-box" id="showBatch">-</div>
+            </div>
+
+            <div class="form-group">
+              <label>รหัสสินค้า / บาร์โค้ด</label>
+              <div class="readonly-box" id="showCode">-</div>
+            </div>
+
+            <div class="form-group">
+              <label>ผู้จำหน่าย</label>
+              <div class="readonly-box" id="showSupplier">-</div>
+            </div>
+
+            <div class="form-group">
+              <label>วันหมดอายุ</label>
+              <div class="readonly-box" id="showExpiry">-</div>
+            </div>
+
+            <div class="form-group">
+              <label>คงเหลือในล็อต</label>
+              <div class="readonly-box" id="showRemain">0</div>
+            </div>
+
+            <div class="form-group full">
+              <label>คงเหลือหลังบันทึก</label>
+              <div class="readonly-box" id="showAfterRemain">0</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="damageQty">จำนวนชำรุด *</label>
+            <input
+              type="number"
+              id="damageQty"
+              min="1"
+              step="0.01"
+              placeholder="เช่น 1 หรือ 5"
+              oninput="updateRemainPreview()"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="damageReason">สาเหตุ *</label>
+            <input
+              type="text"
+              id="damageReason"
+              placeholder="เช่น ถุงแตก / ซีลเสีย / กล่องบุบ"
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="damageNote">หมายเหตุ</label>
+            <textarea
+              id="damageNote"
+              rows="3"
+              placeholder="รายละเอียดเพิ่มเติม"
+            ></textarea>
+          </div>
+        </div>
+
+        <div id="selectedBatchMeta" class="meta-note">
+          เลือกล็อตเพื่อดูรายละเอียดเพิ่มเติม
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-primary" id="saveBtn" onclick="saveDamage()">บันทึก</button>
+          <button type="button" class="btn-secondary" onclick="clearForm()">ล้างข้อมูล</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>รายการที่แจ้งแล้ว</h2>
+        <p class="subtext">ค้นหา กรอง และตรวจสอบรายการที่เคยบันทึกไว้</p>
+
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="ค้นหาสินค้า / ล็อต / ผู้จำหน่าย / หมายเหตุ"
+                oninput="renderDamageTable()"
+              >
+            </div>
+
+            <select id="statusFilter" class="toolbar-select" onchange="renderDamageTable()">
+              <option value="all">ทุกสถานะ</option>
+              <option value="pending">รอตรวจสอบ</option>
+              <option value="contacted">แจ้ง supplier แล้ว</option>
+            </select>
+
+            <select id="sortFilter" class="toolbar-select" onchange="renderDamageTable()">
+              <option value="newest">ใหม่ล่าสุด</option>
+              <option value="oldest">เก่าสุด</option>
+              <option value="qty_desc">จำนวนมากสุด</option>
+              <option value="name_asc">ชื่อสินค้า A-Z</option>
+            </select>
+
+            <button type="button" class="btn-secondary" onclick="clearFilters()">ล้างตัวกรอง</button>
+          </div>
+        </div>
+
+        <div class="table-info" id="tableInfoText">กำลังโหลดข้อมูล...</div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>สินค้า</th>
+                <th>ล็อต</th>
+                <th>ผู้จำหน่าย</th>
+                <th>จำนวนชำรุด</th>
+                <th>สาเหตุ</th>
+                <th>สถานะ</th>
+                <th>ผู้แจ้ง</th>
+                <th>หมายเหตุ</th>
+                <th>วันที่แจ้ง</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="damageTableBody">
+              <tr>
+                <td colspan="10" class="empty-state">กำลังโหลดข้อมูล...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://uaqljdqtitdpctjxhutv.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_acbHgymVZkSQv0cHco0WWw_2Aipv9hL";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let batchList = [];
+    let damageList = [];
+    let productMap = {};
+    let supplierMap = {};
+
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    function getCurrentUser() {
+      try {
+        return JSON.parse(localStorage.getItem("user"));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function checkAuth() {
+      const user = getCurrentUser();
+      if (!user) {
+        window.location.href = "login.html";
+        return null;
+      }
+      return user;
+    }
+
+    function showMessage(text = "", type = "info") {
+      const box = $("messageBox");
+
+      if (!text) {
+        box.className = "message-box";
+        box.textContent = "";
+        box.style.display = "none";
+        return;
+      }
+
+      box.className = "message-box";
+      box.style.display = "block";
+      box.textContent = text;
+
+      if (type === "success") box.classList.add("message-success");
+      else if (type === "error") box.classList.add("message-error");
+      else box.classList.add("message-info");
+    }
+
+    function formatDate(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleDateString("th-TH");
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleString("th-TH");
+    }
+
+    function formatNumber(value) {
+      const num = Number(value || 0);
+      return num.toLocaleString("th-TH", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function normalizeText(value) {
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function setButtonLoading(buttonId, loadingText, isLoading) {
+      const btn = $(buttonId);
+      if (!btn) return;
+
+      if (!btn.dataset.originalText) {
+        btn.dataset.originalText = btn.textContent;
+      }
+
+      btn.disabled = isLoading;
+      btn.textContent = isLoading ? loadingText : btn.dataset.originalText;
+    }
+
+    function isExpired(dateStr) {
+      if (!dateStr) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const expiry = new Date(dateStr);
+      expiry.setHours(0, 0, 0, 0);
+
+      return expiry < today;
+    }
+
+    function getStatusMeta(status) {
+      const raw = String(status || "").trim();
+
+      if (raw === "แจ้ง supplier แล้ว" || raw === "แจ้งผู้จำหน่ายแล้ว" || raw === "contacted") {
+        return { key: "contacted", label: "แจ้ง supplier แล้ว", className: "status-contacted" };
+      }
+      if (raw === "ส่งคืน supplier แล้ว" || raw === "ส่งคืนผู้จำหน่ายแล้ว" || raw === "ส่งคืนแล้ว" || raw === "returned") {
+        return { key: "returned", label: "ส่งคืน supplier แล้ว", className: "status-returned" };
+      }
+      if (raw === "ทิ้งแล้ว" || raw === "ตัดออกแล้ว" || raw === "ทำลาย" || raw === "disposed") {
+        return { key: "disposed", label: "ทิ้งแล้ว", className: "status-disposed" };
+      }
+
+      return { key: "pending", label: "รอตรวจสอบ", className: "status-pending" };
+    }
+
+    function clearFilters() {
+      $("searchInput").value = "";
+      $("statusFilter").value = "all";
+      $("sortFilter").value = "newest";
+      renderDamageTable();
+    }
+
+    async function loadMasterData() {
+      const productRes = await supabaseClient
+        .from("products")
+        .select("id, product_name, product_code, barcode, unit")
+        .order("id", { ascending: true });
+
+      if (productRes.error) {
+        throw new Error("products: " + productRes.error.message);
+      }
+
+      const supplierRes = await supabaseClient
+        .from("suppliers")
+        .select("id, name")
+        .order("id", { ascending: true });
+
+      if (supplierRes.error) {
+        throw new Error("suppliers: " + supplierRes.error.message);
+      }
+
+      console.log("products raw =", productRes.data);
+      console.log("suppliers raw =", supplierRes.data);
+
+      productMap = {};
+      supplierMap = {};
+
+      (productRes.data || []).forEach(item => {
+        productMap[item.id] = item;
+      });
+
+      (supplierRes.data || []).forEach(item => {
+        supplierMap[item.id] = item;
+      });
+
+      console.log("productMap =", productMap);
+      console.log("supplierMap =", supplierMap);
+    }
+
+    function renderBatchOptions() {
+      const select = $("batchSelect");
+      const keyword = normalizeText($("batchSearchInput")?.value || "");
+      const currentValue = select.value;
+
+      let rows = [...batchList];
+
+      if (keyword) {
+        rows = rows.filter(batch =>
+          normalizeText(batch.product_name).includes(keyword) ||
+          normalizeText(batch.product_code).includes(keyword) ||
+          normalizeText(batch.barcode).includes(keyword) ||
+          normalizeText(batch.batch_no).includes(keyword) ||
+          normalizeText(batch.supplier_name).includes(keyword)
+        );
+      }
+
+      select.innerHTML = `<option value="">-- เลือกล็อตสินค้า --</option>`;
+
+      if (!rows.length) {
+        select.innerHTML = `<option value="">-- ไม่พบล็อตที่ค้นหา --</option>`;
+        fillBatchInfo();
+        return;
+      }
+
+      rows.forEach(batch => {
+        const option = document.createElement("option");
+        option.value = batch.id;
+
+        const codeText = [batch.product_code, batch.barcode]
+          .filter(v => v && String(v).trim() !== "")
+          .join(" / ");
+
+        option.textContent =
+          `${batch.product_name} (${batch.product_unit || "-"}) | ล็อต ${batch.batch_no || "-"} | ${codeText || "ไม่มีรหัส"} | คงเหลือ ${formatNumber(batch.quantity_remaining)}`;
+
+        select.appendChild(option);
+      });
+
+      if (rows.some(item => String(item.id) === String(currentValue))) {
+        select.value = currentValue;
+      } else {
+        select.value = "";
+      }
+
+      fillBatchInfo();
+    }
+
+    async function loadBatchOptions() {
+      const select = $("batchSelect");
+      select.innerHTML = `<option value="">กำลังโหลดล็อต...</option>`;
+
+      const { data, error } = await supabaseClient
+        .from("batches")
+        .select(`
+          id,
+          product_id,
+          batch_no,
+          expiry_date,
+          quantity_remaining,
+          supplier_id,
+          damage_qty
+        `)
+        .order("id", { ascending: false });
+
+      if (error) {
+        console.error("loadBatchOptions error =", error);
+        batchList = [];
+        select.innerHTML = `<option value="">-- โหลดล็อตไม่สำเร็จ --</option>`;
+        throw new Error("batches: " + error.message);
+      }
+
+      console.log("batches raw =", data);
+
+      batchList = (data || []).map(batch => {
+        const product = productMap[batch.product_id] || null;
+        const supplier = supplierMap[batch.supplier_id] || null;
+
+        return {
+          ...batch,
+          product_name: product?.product_name || "ไม่พบสินค้า",
+          product_unit: product?.unit || "-",
+          product_code: product?.product_code || "",
+          barcode: product?.barcode || "",
+          supplier_name: supplier?.name || "-"
+        };
+      });
+
+      console.log("batches mapped =", batchList);
+
+      batchList = batchList
+        .filter(batch => Number(batch.quantity_remaining || 0) > 0)
+        .filter(batch => !isExpired(batch.expiry_date));
+
+      console.log("batches filtered >", batchList);
+
+      if (!batchList.length) {
+        select.innerHTML = `<option value="">-- ไม่พบล็อตสินค้าที่เลือกได้ --</option>`;
+        showMessage("ไม่พบล็อตสินค้าในระบบ หรือ quantity_remaining เป็น 0 ทั้งหมด", "error");
+        return;
+      }
+
+      renderBatchOptions();
+      showMessage(`โหลดล็อตสินค้าแล้ว ${batchList.length} ล็อต`, "success");
+    }
+
+    function getSelectedBatch() {
+      const id = Number($("batchSelect").value);
+      if (!id) return null;
+      return batchList.find(item => Number(item.id) === id) || null;
+    }
+
+    function renderSelectedBatchMeta() {
+      const batch = getSelectedBatch();
+      const box = $("selectedBatchMeta");
+
+      if (!batch) {
+        box.innerHTML = `เลือกล็อตเพื่อดูรายละเอียดเพิ่มเติม`;
+        return;
+      }
+
+      const relatedReports = damageList.filter(item => Number(item.batch_id) === Number(batch.id));
+      const totalDamage = relatedReports.reduce((sum, item) => sum + Number(item.damage_qty || 0), 0);
+
+      box.innerHTML = `
+        ล็อตนี้เคยถูกแจ้งชำรุดแล้ว <strong>${formatNumber(relatedReports.length)}</strong> รายการ
+        รวม <strong>${formatNumber(totalDamage)}</strong> หน่วย
+      `;
+    }
+
+    function updateRemainPreview() {
+      const batch = getSelectedBatch();
+      const qty = Number($("damageQty").value || 0);
+      const afterBox = $("showAfterRemain");
+
+      if (!batch) {
+        afterBox.textContent = "0";
+        afterBox.className = "readonly-box";
+        return;
+      }
+
+      const remain = Number(batch.quantity_remaining || 0);
+      const afterRemain = remain - qty;
+
+      afterBox.textContent = formatNumber(afterRemain < 0 ? 0 : afterRemain);
+      afterBox.className = afterRemain < 0 ? "readonly-box alert" : "readonly-box";
+    }
+
+    function fillBatchInfo() {
+      const batch = getSelectedBatch();
+
+      if (!batch) {
+        $("showProduct").textContent = "-";
+        $("showBatch").textContent = "-";
+        $("showCode").textContent = "-";
+        $("showSupplier").textContent = "-";
+        $("showExpiry").textContent = "-";
+        $("showRemain").textContent = "0";
+        $("showAfterRemain").textContent = "0";
+        $("showAfterRemain").className = "readonly-box";
+        renderSelectedBatchMeta();
+        return;
+      }
+
+      $("showProduct").textContent = `${batch.product_name || "-"} (${batch.product_unit || "-"})`;
+      $("showBatch").textContent = batch.batch_no || "-";
+
+      const codeText = [batch.product_code, batch.barcode].filter(Boolean).join(" / ");
+      $("showCode").textContent = codeText || "-";
+
+      $("showSupplier").textContent = batch.supplier_name || "-";
+      $("showExpiry").textContent = batch.expiry_date ? formatDate(batch.expiry_date) : "-";
+      $("showRemain").textContent = formatNumber(batch.quantity_remaining || 0);
+      $("showAfterRemain").textContent = formatNumber(batch.quantity_remaining || 0);
+      $("showAfterRemain").className = "readonly-box";
+
+      updateRemainPreview();
+      renderSelectedBatchMeta();
+    }
+
+    function clearForm() {
+      $("batchSearchInput").value = "";
+      $("batchSelect").value = "";
+      $("damageQty").value = "";
+      $("damageReason").value = "";
+      $("damageNote").value = "";
+      renderBatchOptions();
+      showMessage("", "info");
+    }
+
+    async function saveDamage() {
+      showMessage("", "info");
+
+      const user = getCurrentUser();
+      const batch = getSelectedBatch();
+      const damageQty = Number($("damageQty").value || 0);
+      const reason = $("damageReason").value.trim();
+      const note = $("damageNote").value.trim();
+
+      if (!batch) {
+        alert("กรุณาเลือกล็อตสินค้า");
+        return;
+      }
+
+      if (isExpired(batch.expiry_date)) {
+        alert("ล็อตนี้หมดอายุแล้ว กรุณาไปจัดการในหน้าสินค้าหมดอายุ");
+        return;
+      }
+
+      if (damageQty <= 0) {
+        alert("กรุณากรอกจำนวนชำรุดให้มากกว่า 0");
+        return;
+      }
+
+      if (!reason) {
+        alert("กรุณากรอกสาเหตุ");
+        return;
+      }
+
+      const remain = Number(batch.quantity_remaining || 0);
+      if (damageQty > remain) {
+        alert("จำนวนชำรุดมากกว่าจำนวนคงเหลือ");
+        return;
+      }
+
+      const newRemain = remain - damageQty;
+      const nowIso = new Date().toISOString();
+      let insertedReportId = null;
+
+      try {
+        setButtonLoading("saveBtn", "กำลังบันทึก...", true);
+
+        const reportPayload = {
+          batch_id: batch.id,
+          product_id: batch.product_id,
+          product_name: batch.product_name || null,
+          batch_no: batch.batch_no,
+          supplier: batch.supplier_name || null,
+          damage_qty: damageQty,
+          damage_reason: reason,
+          damage_status: "รอตรวจสอบ",
+          note: note || null,
+          reported_by: user?.username || "unknown",
+          reported_at: nowIso,
+          updated_at: nowIso
+        };
+
+        const { data: insertedReport, error: insertError } = await supabaseClient
+          .from("damage_reports")
+          .insert([reportPayload])
+          .select("id")
+          .single();
+
+        if (insertError) throw insertError;
+        insertedReportId = insertedReport?.id || null;
+
+        const newBatchDamageQty = Number(batch.damage_qty || 0) + damageQty;
+
+        const { error: updateError } = await supabaseClient
+          .from("batches")
+          .update({
+            quantity_remaining: newRemain,
+            is_damaged: true,
+            damage_qty: newBatchDamageQty,
+            damage_reason: reason,
+            damage_status: "รอตรวจสอบ",
+            damage_note: note || null,
+            damage_reported_at: nowIso,
+            updated_at: nowIso
+          })
+          .eq("id", batch.id);
+
+        if (updateError) {
+          if (insertedReportId) {
+            await supabaseClient.from("damage_reports").delete().eq("id", insertedReportId);
+          }
+          throw updateError;
+        }
+
+        clearForm();
+        await loadData();
+        showMessage("บันทึกรายการชำรุดเรียบร้อยแล้ว", "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("บันทึกไม่สำเร็จ: " + error.message, "error");
+      } finally {
+        setButtonLoading("saveBtn", "กำลังบันทึก...", false);
+      }
+    }
+
+    async function loadDamageReports() {
+      const { data, error } = await supabaseClient
+        .from("damage_reports")
+        .select(`
+          id,
+          batch_id,
+          product_id,
+          product_name,
+          batch_no,
+          supplier,
+          damage_qty,
+          damage_reason,
+          damage_status,
+          note,
+          reported_by,
+          reported_at,
+          updated_at
+        `)
+        .order("reported_at", { ascending: false });
+
+      if (error) {
+        throw new Error("damage_reports: " + error.message);
+      }
+
+      damageList = (data || []).filter(item => {
+        const statusKey = getStatusMeta(item.damage_status).key;
+        return statusKey !== "returned" && statusKey !== "disposed";
+      });
+      renderDamageTable();
+      renderStats();
+      renderSelectedBatchMeta();
+    }
+
+    function renderStats() {
+      $("statCount").textContent = formatNumber(damageList.length);
+      $("statQty").textContent = formatNumber(
+        damageList.reduce((sum, item) => sum + Number(item.damage_qty || 0), 0)
+      );
+
+      const uniqueBatchIds = new Set(
+        damageList.map(item => item.batch_id).filter(Boolean)
+      );
+
+      $("statBatch").textContent = formatNumber(uniqueBatchIds.size);
+      $("statPending").textContent = formatNumber(
+        damageList.filter(item => getStatusMeta(item.damage_status).key === "pending").length
+      );
+    }
+
+    function renderDamageTable() {
+      const tbody = $("damageTableBody");
+      const keyword = normalizeText($("searchInput").value);
+      const statusFilter = $("statusFilter").value;
+      const sortFilter = $("sortFilter").value;
+      const infoText = $("tableInfoText");
+
+      let rows = [...damageList];
+
+      if (keyword) {
+        rows = rows.filter(item =>
+          normalizeText(item.product_name).includes(keyword) ||
+          normalizeText(item.batch_no).includes(keyword) ||
+          normalizeText(item.supplier).includes(keyword) ||
+          normalizeText(item.note).includes(keyword) ||
+          normalizeText(item.damage_reason).includes(keyword)
+        );
+      }
+
+      if (statusFilter !== "all") {
+        rows = rows.filter(item => getStatusMeta(item.damage_status).key === statusFilter);
+      }
+
+      switch (sortFilter) {
+        case "oldest":
+          rows.sort((a, b) => new Date(a.reported_at || 0) - new Date(b.reported_at || 0));
+          break;
+        case "qty_desc":
+          rows.sort((a, b) => Number(b.damage_qty || 0) - Number(a.damage_qty || 0));
+          break;
+        case "name_asc":
+          rows.sort((a, b) => String(a.product_name || "").localeCompare(String(b.product_name || ""), "th"));
+          break;
+        default:
+          rows.sort((a, b) => new Date(b.reported_at || 0) - new Date(a.reported_at || 0));
+      }
+
+      infoText.textContent = keyword || statusFilter !== "all"
+        ? `พบ ${rows.length} รายการ จากทั้งหมด ${damageList.length} รายการ`
+        : `แสดงทั้งหมด ${damageList.length} รายการ`;
+
+      if (!rows.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="empty-state">ยังไม่มีรายการสินค้าชำรุด</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(item => {
+        const status = getStatusMeta(item.damage_status);
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(item.product_name || "-")}</strong><div class="sub-mini-text">หน่วย: ${escapeHtml(item.product_unit || "-")}</div></td>
+            <td><span class="id-badge">${escapeHtml(item.batch_no || "-")}</span></td>
+            <td>${escapeHtml(item.supplier || "-")}</td>
+            <td>${formatNumber(item.damage_qty || 0)}</td>
+            <td>${escapeHtml(item.damage_reason || "-")}</td>
+            <td><span class="status-pill ${status.className}">${escapeHtml(status.label)}</span></td>
+            <td>${escapeHtml(item.reported_by || "-")}</td>
+            <td>${escapeHtml(item.note || "-")}</td>
+            <td>
+              ${escapeHtml(formatDateTime(item.reported_at))}
+              <div class="muted-text">อัปเดต: ${escapeHtml(formatDateTime(item.updated_at))}</div>
+            </td>
+            <td>
+              <div class="action-group">
+                <button type="button" class="btn-danger" onclick="deleteDamage(${item.id})">ลบ</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function recalculateBatchDamage(batchId) {
+      const { data: reportRows, error: reportError } = await supabaseClient
+        .from("damage_reports")
+        .select("damage_qty, damage_reason, damage_status, note, reported_at")
+        .eq("batch_id", batchId)
+        .order("reported_at", { ascending: false });
+
+      if (reportError) throw reportError;
+
+      const totalDamageQty = (reportRows || []).reduce(
+        (sum, row) => sum + Number(row.damage_qty || 0),
+        0
+      );
+
+      const latest = reportRows?.[0] || null;
+
+      const { error: batchUpdateError } = await supabaseClient
+        .from("batches")
+        .update({
+          damage_qty: totalDamageQty,
+          is_damaged: totalDamageQty > 0,
+          damage_reason: latest?.damage_reason || null,
+          damage_status: latest?.damage_status || null,
+          damage_note: latest?.note || null,
+          damage_reported_at: latest?.reported_at || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", batchId);
+
+      if (batchUpdateError) throw batchUpdateError;
+    }
+
+    async function deleteDamage(reportId) {
+      const row = damageList.find(item => Number(item.id) === Number(reportId));
+      if (!row) return;
+
+      const confirmed = confirm("ต้องการลบรายการนี้ใช่หรือไม่? ระบบจะคืนจำนวนกลับไปที่ batch");
+      if (!confirmed) return;
+
+      try {
+        const { data: batch, error: batchError } = await supabaseClient
+          .from("batches")
+          .select("id, quantity_remaining")
+          .eq("id", row.batch_id)
+          .single();
+
+        if (batchError) throw batchError;
+
+        const newRemain = Number(batch.quantity_remaining || 0) + Number(row.damage_qty || 0);
+
+        const { error: updateBatchError } = await supabaseClient
+          .from("batches")
+          .update({
+            quantity_remaining: newRemain,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", row.batch_id);
+
+        if (updateBatchError) throw updateBatchError;
+
+        const { error: deleteError } = await supabaseClient
+          .from("damage_reports")
+          .delete()
+          .eq("id", reportId);
+
+        if (deleteError) throw deleteError;
+
+        await recalculateBatchDamage(row.batch_id);
+        await loadData();
+        showMessage("ลบรายการชำรุดและคืนจำนวนกลับให้ batch แล้ว", "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("ลบรายการไม่สำเร็จ: " + error.message, "error");
+      }
+    }
+
+    async function loadData() {
+      try {
+        showMessage("กำลังโหลดข้อมูล...", "info");
+        await loadMasterData();
+        await loadBatchOptions();
+        fillBatchInfo();
+        await loadDamageReports();
+        showMessage("", "info");
+      } catch (error) {
+        console.error("loadData error =", error);
+        showMessage("โหลดข้อมูลไม่สำเร็จ: " + error.message, "error");
+      }
+    }
+
+    async function initPage() {
+      const user = checkAuth();
+      if (!user) return;
+      await loadData();
+    }
+
+    initPage();
+  </script>
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>แดชบอร์ด - ระบบจัดการงานส่งสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="dashboard">
+  <aside class="sidebar">
+    <h2>Sophon Driver</h2>
+    <a href="dashboard.html" class="active">แดชบอร์ด</a>
+    <a href="line_orders.html">รับออเดอร์ Line</a>
+    <a href="confirm_orders.html">ยืนยันรายละเอียด</a>
+    <a href="orders.html">คำสั่งซื้อ</a>
+    <a href="planning.html">วางแผนจัดส่ง</a>
+    <a href="driver.html">หน้าคนขับ</a>
+    <a href="reports.html">รายงานผลงาน</a>
+    <a href="users.html">ผู้ใช้และสิทธิ์</a>
+  </aside>
+
+  <main class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>แดชบอร์ดการจัดส่ง</h1>
+        <p>ภาพรวมสำหรับติดตามงานจัดส่งสินค้า การมอบหมายงาน และสถานะล่าสุดของทั้งระบบ</p>
+      </div>
+      <div class="topbar-right">
+        <div class="summary-box">
+          <div class="label">สถานะระบบ</div>
+          <div class="value">พร้อมใช้งาน</div>
+        </div>
+      </div>
+    </div>
+
+    <section class="dashboard-intro">
+      <div>
+        <div class="intro-kicker">Delivery Overview</div>
+        <div class="dashboard-intro-title">ระบบจัดการงานส่งสินค้าแบบหลายหน้าในรูปแบบเดียวกับ expire-final</div>
+        <div class="dashboard-intro-sub">
+          หน้านี้ไม่ใส่ข้อมูลตัวอย่างปลอมไว้ล่วงหน้า ทุกตารางและสรุปผลจะแสดงจากข้อมูลที่ผู้ใช้เพิ่มจริงภายในระบบเท่านั้น
+        </div>
+        <div class="intro-points">
+          <div class="intro-point">
+            <div class="intro-point-label">เพิ่มข้อมูลจริง</div>
+            <div class="intro-point-text">เริ่มจากเพิ่มผู้ใช้หรือพนักงานขับรถ และเพิ่มคำสั่งซื้อจากหน้าที่เกี่ยวข้อง</div>
+          </div>
+          <div class="intro-point">
+            <div class="intro-point-label">ติดตามสถานะ</div>
+            <div class="intro-point-text">สถานะจะอัปเดตจากการมอบหมายงาน การขึ้นรถ การออกส่ง และผลการจัดส่ง</div>
+          </div>
+          <div class="intro-point">
+            <div class="intro-point-label">รายงานผล</div>
+            <div class="intro-point-text">เมื่อมีข้อมูลจริง ระบบจะคำนวณ KPI และสรุปผลการทำงานให้อัตโนมัติ</div>
+          </div>
+        </div>
+      </div>
+      <div class="intro-side">
+        <div class="intro-panel">
+          <div class="intro-panel-title">ลำดับการใช้งาน</div>
+          <div class="intro-checklist">
+            <div class="intro-check"><div class="intro-check-number">1</div><div><strong>เพิ่มผู้ใช้</strong><span>สร้างผู้ดูแล ผู้จัดการ และพนักงานขับรถจากหน้าผู้ใช้</span></div></div>
+            <div class="intro-check"><div class="intro-check-number">2</div><div><strong>เพิ่มคำสั่งซื้อ</strong><span>กรอกข้อมูลลูกค้า เลขออเดอร์ ที่อยู่ และวันที่จัดส่ง</span></div></div>
+            <div class="intro-check"><div class="intro-check-number">3</div><div><strong>มอบหมายและติดตาม</strong><span>จัดงานให้คนขับ อัปเดตสถานะ และดูผลรวมจากแดชบอร์ด</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">Staff Workflow</div>
+          <h2>ลำดับการทำงานสำหรับพนักงาน</h2>
+          <p>ใช้ลำดับนี้เป็นคู่มือการทำงานประจำวัน ตั้งแต่รับออเดอร์จากลูกค้าไปจนถึงส่งมอบสินค้า</p>
+        </div>
+      </div>
+      <div class="workflow-steps">
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">LINE</div>
+          <div>
+            <h3>รับแชต</h3>
+            <p>เอา PO จาก Line @</p>
+            <div class="workflow-mini">PO -> ลูกค้า -> รายการ</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">PO</div>
+          <div>
+            <h3>เปิด PO</h3>
+            <p>ค้นหาและดึงออเดอร์</p>
+            <div class="workflow-mini">คีย์เลขเดียวแล้วทำต่อ</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">OK</div>
+          <div>
+            <h3>ยืนยัน</h3>
+            <p>เช็กชื่อ ที่อยู่ แผนที่</p>
+            <div class="workflow-mini">โทร + ส่งให้ลูกค้ายืนยัน</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">MAP</div>
+          <div>
+            <h3>จัดโซน</h3>
+            <p>ระบบแยกเขต / อำเภอ</p>
+            <div class="workflow-mini">พร้อมวางแผนส่ง</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">SEND</div>
+          <div>
+            <h3>ส่งสินค้า</h3>
+            <p>โหลด -> ออกส่ง -> ปิดงาน</p>
+            <div class="workflow-mini">driver update status</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">System Summary</div>
+          <h2>สรุปภาพรวมวันนี้</h2>
+          <p>ตัวเลขทั้งหมดด้านล่างจะอ้างอิงจากข้อมูลจริงในระบบเท่านั้น</p>
+        </div>
+      </div>
+      <div class="stats-grid" id="dashboardStats"></div>
+      <div class="overview-panel">
+        <div class="card">
+          <h2>กิจกรรมล่าสุด</h2>
+          <div id="recentLogs"></div>
+        </div>
+        <div class="card">
+          <h2>สรุปตามพื้นที่</h2>
+          <div id="areaSummary"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

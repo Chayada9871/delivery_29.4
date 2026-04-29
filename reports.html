@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>รายงานผลงาน - ระบบจัดการงานส่งสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="reports">
+  <aside class="sidebar">
+    <h2>Sophon Driver</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="line_orders.html">รับออเดอร์ Line</a>
+    <a href="confirm_orders.html">ยืนยันรายละเอียด</a>
+    <a href="orders.html">คำสั่งซื้อ</a>
+    <a href="planning.html">วางแผนจัดส่ง</a>
+    <a href="driver.html">หน้าคนขับ</a>
+    <a href="reports.html" class="active">รายงานผลงาน</a>
+    <a href="users.html">ผู้ใช้และสิทธิ์</a>
+  </aside>
+  <main class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>รายงานผลการจัดส่ง</h1>
+        <p>สรุป KPI ของพนักงานขับรถจากข้อมูลจริงที่เกิดขึ้นในระบบ</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ประสิทธิภาพพนักงานขับรถ</h2>
+      <div id="reportCards"></div>
+    </div>
+    <div class="main-grid">
+      <div class="card">
+        <h2>รายการส่งไม่สำเร็จ</h2>
+        <div id="failedList"></div>
+      </div>
+      <div class="card">
+        <h2>รายการตีกลับ</h2>
+        <div id="returnedList"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>รับออเดอร์ Line - ระบบจัดการงานส่งสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body data-page="line_orders">
+  <aside class="sidebar">
+    <h2>Sophon Driver</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="line_orders.html" class="active">รับออเดอร์ Line</a>
+    <a href="confirm_orders.html">ยืนยันรายละเอียด</a>
+    <a href="orders.html">คำสั่งซื้อ</a>
+    <a href="planning.html">วางแผนจัดส่ง</a>
+    <a href="driver.html">หน้าคนขับ</a>
+    <a href="reports.html">รายงานผลงาน</a>
+    <a href="users.html">ผู้ใช้และสิทธิ์</a>
+  </aside>
+  <main class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>รับออเดอร์จาก Line @</h1>
+        <p>พนักงานเริ่มงานด้วยการคีย์ PO ที่ลูกค้าสั่งผ่าน Line และเก็บข้อมูลเบื้องต้นก่อนส่งให้ลูกค้ายืนยัน</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ขั้นตอนที่พนักงานต้องทำ</h2>
+      <div class="workflow-steps">
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">LINE</div>
+          <div>
+            <h3>ดูแชต</h3>
+            <p>หา PO และรายการ</p>
+            <div class="workflow-mini">ต้องมี PO</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">PO</div>
+          <div>
+            <h3>คีย์ PO</h3>
+            <p>กรอกลูกค้า + สินค้า</p>
+            <div class="workflow-mini">บันทึกครั้งแรก</div>
+          </div>
+        </div>
+        <div class="workflow-step compact">
+          <div class="workflow-symbol">NEXT</div>
+          <div>
+            <h3>ส่งต่อ</h3>
+            <p>ไปหน้ายืนยันรายละเอียด</p>
+            <div class="workflow-note">ถัดไป -> ยืนยันรายละเอียด</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main-grid">
+      <div class="left-stack">
+        <div class="card">
+          <h2>บันทึกรายการใหม่</h2>
+          <form id="lineOrderForm" class="form-grid-single">
+            <label>PO Number<input name="poNumber" required></label>
+            <label>Line Customer Name<input name="customerName" required></label>
+            <label>Line ID / เบอร์โทร<input name="contact" required></label>
+            <div class="soft-card">
+              <strong>เลือกสินค้าจาก Supabase</strong>
+              <div class="inline-meta">ค้นหาสินค้าแล้วกดเพิ่มเข้ารายการ PO</div>
+              <div class="toolbar mt-14">
+                <div class="toolbar-left">
+                  <input id="lineProductSearch" type="text" placeholder="ค้นหาจากรหัสหรือชื่อสินค้า">
+                  <button type="button" class="btn btn-secondary" id="lineProductSearchBtn">ค้นหา</button>
+                </div>
+              </div>
+              <div id="lineProductResults"></div>
+              <div id="lineSelectedProducts" class="mt-14"></div>
+            </div>
+            <label>รายการสินค้า<textarea name="items" id="lineItemsTextarea" rows="4" required></textarea></label>
+            <label>ยอดประมาณการ<input name="estimatedAmount" type="number" min="0" step="0.01"></label>
+            <label>หมายเหตุจากแชต<input name="chatNote"></label>
+            <button type="submit" class="btn btn-primary">บันทึกรอส่งยืนยัน</button>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <h2>รายการรับเข้าจาก Line</h2>
+        <div id="lineOrdersTableWrap"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

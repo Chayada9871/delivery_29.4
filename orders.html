@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>คำสั่งซื้อ - ระบบจัดการงานส่งสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/alerts.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="orders">
+  <aside class="sidebar">
+    <h2>Sophon Driver</h2>
+    <a href="dashboard.html">แดชบอร์ด</a>
+    <a href="line_orders.html">รับออเดอร์ Line</a>
+    <a href="confirm_orders.html">ยืนยันรายละเอียด</a>
+    <a href="orders.html" class="active">คำสั่งซื้อ</a>
+    <a href="planning.html">วางแผนจัดส่ง</a>
+    <a href="driver.html">หน้าคนขับ</a>
+    <a href="reports.html">รายงานผลงาน</a>
+    <a href="users.html">ผู้ใช้และสิทธิ์</a>
+  </aside>
+  <main class="page">
+    <div class="topbar">
+      <div class="page-header">
+        <h1>จัดการคำสั่งซื้อ</h1>
+        <p>เพิ่มคำสั่งซื้อจริงของลูกค้าและติดตามสถานะการจัดส่งในตารางกลาง</p>
+      </div>
+    </div>
+    <div class="main-grid">
+      <div class="left-stack">
+        <div class="card">
+          <h2>เพิ่มคำสั่งซื้อใหม่</h2>
+          <form id="orderForm" class="form-grid-single">
+            <label>เลขที่คำสั่งซื้อ<input name="orderNumber" required></label>
+            <label>ชื่อลูกค้า<input name="customerName" required></label>
+            <label>เบอร์โทร<input name="phone" required></label>
+            <label>วันที่จัดส่ง<input name="deliveryDate" type="date" required></label>
+            <label>ที่อยู่จัดส่ง<textarea name="address" rows="4" required></textarea></label>
+            <label>ลิงก์ Google Maps ปลายทาง<input name="mapsUrl" id="mapsUrlInput" type="url" placeholder="วางลิงก์ Google Maps เช่น google.com/maps/... หรือ maps.app.goo.gl/..." required></label>
+            <label>พื้นที่ที่คำนวณได้อัตโนมัติ<input name="area" id="computedAreaInput" readonly placeholder="ระบบจะคำนวณจากพิกัดปลายทาง"></label>
+            <label>หมายเหตุ<input name="note"></label>
+            <button type="submit" class="btn btn-primary">บันทึกคำสั่งซื้อ</button>
+          </form>
+          <div class="alert alert-info">
+            ระบบจะอ่านพิกัดจากลิงก์ Google Maps แล้วจัดกลุ่มคำสั่งซื้อตามโซนปลายทางอัตโนมัติ เพื่อช่วยวางแผนลำดับการส่ง
+          </div>
+          <div class="alert alert-warning">
+            หากใช้ลิงก์สั้นแบบ <code>maps.app.goo.gl</code> ระบบจะพยายามอ่านก่อน แต่ถ้า Google ซ่อนพิกัดไว้ใน redirect
+            เบราว์เซอร์จะไม่สามารถดึงปลายทางจริงได้โดยตรง และอาจต้องใช้ลิงก์ Google Maps แบบเต็มหรือเพิ่ม backend สำหรับขยายลิงก์
+          </div>
+          <div class="alert alert-info">
+            หากตั้งค่า reverse geocode endpoint ระบบจะแบ่งโซนตามชื่อเขตหรืออำเภอจริงโดยอัตโนมัติ แทนการแบ่งจากทิศทางและระยะทาง
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="page-subtitle">รายการคำสั่งซื้อทั้งหมด</div>
+          </div>
+        </div>
+        <div id="ordersTableWrap"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
