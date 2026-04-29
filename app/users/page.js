@@ -6,10 +6,9 @@ import { SectionCard, SoftCard, StatCard } from "@/components/ui/Cards";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ToneBadge } from "@/components/ui/Badge";
 import { useAppState } from "@/lib/app-state";
-import { APP_CONFIG, ROLE_LABELS, ROLES } from "@/lib/config";
+import { ROLE_LABELS, ROLES } from "@/lib/config";
 
 const DEPARTMENT_OPTIONS = [ROLES.MANAGER, ROLES.SALES, ROLES.WAREHOUSE, ROLES.DRIVER];
-const RESET_CONFIRM_TEXT = "ล้างข้อมูลทั้งหมด";
 
 const DEPARTMENT_HELP = {
   [ROLES.MANAGER]: "เห็นภาพรวมทุกหน้าและจัดการบัญชีพนักงานได้",
@@ -73,18 +72,14 @@ function ExpandableText({ value, limit = 60 }) {
 }
 
 export default function UsersPage() {
-  const { state, currentUser, addUser, switchCurrentUser, resetSavedData } = useAppState();
+  const { state, currentUser, addUser, switchCurrentUser } = useAppState();
   const [form, setForm] = useState(createInitialForm((state.users || []).length > 0));
   const [notice, setNotice] = useState({ message: "", tone: "success" });
-  const [resetPhrase, setResetPhrase] = useState("");
-  const [includePriceReset, setIncludePriceReset] = useState(false);
-  const [resetBusy, setResetBusy] = useState(false);
 
   const hasUsers = (state.users || []).length > 0;
   const canManageUsers = !hasUsers || currentUser?.role === ROLES.MANAGER;
   const selectedDepartment = form.department;
   const isDriverDepartment = selectedDepartment === ROLES.DRIVER;
-  const canResetSystemData = Boolean(hasUsers ? currentUser?.role === ROLES.MANAGER : true);
 
   const stats = useMemo(() => {
     const users = state.users || [];
@@ -138,30 +133,6 @@ export default function UsersPage() {
     setForm(createInitialForm(true));
   };
 
-  const handleResetSavedData = async () => {
-    if (!canResetSystemData || resetBusy) return;
-    if (resetPhrase.trim() !== RESET_CONFIRM_TEXT) {
-      setNotice({ message: `กรุณาพิมพ์คำว่า "${RESET_CONFIRM_TEXT}" ให้ตรงก่อนล้างข้อมูล`, tone: "error" });
-      return;
-    }
-
-    setResetBusy(true);
-    const result = await resetSavedData({ includePrices: includePriceReset });
-    setResetBusy(false);
-
-    if (!result?.ok) {
-      setNotice({ message: result?.message || "ล้างข้อมูลระบบไม่สำเร็จ", tone: "error" });
-      return;
-    }
-
-    setResetPhrase("");
-    setIncludePriceReset(false);
-    setNotice({
-      message: result?.message || "ล้างข้อมูลที่บันทึกไว้ทั้งหมดแล้ว",
-      tone: result?.warning ? "warning" : "success",
-    });
-  };
-
   return (
     <AppShell
       currentPath="/users"
@@ -181,82 +152,6 @@ export default function UsersPage() {
             <StatCard label="ฝ่ายขายและคลัง" value={stats.operations} tone="warning" />
             <StatCard label="คนขับ" value={stats.drivers} tone="success" />
           </div>
-        </SectionCard>
-
-        <SectionCard
-          title="รีเซ็ตข้อมูลที่บันทึกไว้"
-          description="ใช้เมื่อต้องการล้างข้อมูลการทำงานทั้งหมดออกจากระบบและ Supabase แต่เก็บบัญชีพนักงานไว้เหมือนเดิม"
-        >
-          {!canResetSystemData ? (
-            <div className="border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-              เฉพาะผู้จัดการเท่านั้นที่ล้างข้อมูลระบบได้
-            </div>
-          ) : (
-            <div className="space-y-5">
-              <div className="grid gap-4 lg:grid-cols-3">
-                <SoftCard className="bg-white">
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-400">จะถูกล้าง</div>
-                  <div className="mt-3 text-base font-semibold text-slate-950">ข้อมูล PO / งานส่ง / ประวัติส่ง</div>
-                  <div className="mt-2 text-sm leading-6 text-slate-600">
-                    ข้อมูลทั้งหมดในตาราง <span className="font-semibold text-slate-900">{APP_CONFIG.poTable}</span> รวมทั้งข้อมูลใน localStorage
-                  </div>
-                </SoftCard>
-
-                <SoftCard className="bg-white">
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-400">เก็บไว้</div>
-                  <div className="mt-3 text-base font-semibold text-slate-950">บัญชีพนักงาน</div>
-                  <div className="mt-2 text-sm leading-6 text-slate-600">
-                    ตาราง <span className="font-semibold text-slate-900">{APP_CONFIG.userTable}</span> จะไม่ถูกแตะต้อง
-                  </div>
-                </SoftCard>
-
-                <SoftCard className="bg-white">
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-400">ตัวเลือกเพิ่ม</div>
-                  <div className="mt-3 text-base font-semibold text-slate-950">ล้างราคาที่บันทึกเอง</div>
-                  <div className="mt-2 text-sm leading-6 text-slate-600">
-                    หากเลือก ระบบจะล้างข้อมูลในตาราง <span className="font-semibold text-slate-900">{APP_CONFIG.priceTable}</span> ด้วย
-                  </div>
-                </SoftCard>
-              </div>
-
-              <label className="flex items-start gap-3 border border-slate-200 bg-slate-50 px-4 py-4">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={includePriceReset}
-                  onChange={(event) => setIncludePriceReset(event.target.checked)}
-                />
-                <div>
-                  <div className="text-sm font-semibold text-slate-900">ล้างราคาที่บันทึกไว้ในระบบด้วย</div>
-                  <div className="mt-1 text-sm text-slate-600">
-                    ถ้าไม่เลือก จะล้างเฉพาะข้อมูล PO, dispatch, ประวัติส่ง และ log ภายในระบบเท่านั้น
-                  </div>
-                </div>
-              </label>
-
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,360px)_auto] lg:items-end">
-                <label className="block">
-                  <div className="mb-2 text-sm font-semibold text-slate-900">
-                    พิมพ์คำว่า <span className="text-rose-700">{RESET_CONFIRM_TEXT}</span> เพื่อยืนยัน
-                  </div>
-                  <input
-                    value={resetPhrase}
-                    onChange={(event) => setResetPhrase(event.target.value)}
-                    placeholder={RESET_CONFIRM_TEXT}
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  className="border border-rose-300 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                  onClick={handleResetSavedData}
-                  disabled={resetBusy || resetPhrase.trim() !== RESET_CONFIRM_TEXT}
-                >
-                  {resetBusy ? "กำลังล้างข้อมูล..." : "ล้างข้อมูลที่บันทึกไว้ทั้งหมด"}
-                </button>
-              </div>
-            </div>
-          )}
         </SectionCard>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_380px]">
