@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/lib/app-state";
@@ -48,7 +47,7 @@ export default function LoginPage() {
           <div className="text-[11px] font-semibold uppercase tracking-[0.32em] text-orange-200/80">Sophon Operations</div>
           <h1 className="mt-4 text-4xl font-bold tracking-tight">ระบบจัดการส่งสินค้าและคนขับ</h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">
-            เข้าสู่ระบบด้วยบัญชีพนักงานที่ผู้จัดการสร้างไว้ เพื่อใช้งานเฉพาะหน้าที่ของแต่ละแผนกอย่างถูกต้องตาม workflow ของงานส่งสินค้า
+            เข้าสู่ระบบด้วยบัญชีพนักงาน เพื่อใช้งานเฉพาะหน้าที่ของแต่ละแผนกอย่างถูกต้องตาม workflow ของงานส่งสินค้า
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -74,50 +73,42 @@ export default function LoginPage() {
             ใช้ username และ password ของพนักงานในระบบ เพื่อเปิดมุมมองตามสิทธิ์ของบัญชี
           </p>
 
-          {!hasUsers ? (
-            <div className="mt-6 border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-800">
-              ยังไม่มีบัญชีพนักงานในระบบ กรุณาเริ่มต้นจากการสร้างบัญชีผู้จัดการก่อน
-              <div className="mt-4">
-                <Link
-                  href="/users"
-                  className="inline-flex bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
-                >
-                  ไปหน้าจัดการพนักงาน
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-              {notice.message ? <Notice message={notice.message} tone={notice.tone} /> : null}
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+            {!hasUsers ? (
+              <Notice
+                message="ยังไม่มีบัญชีพนักงานในระบบ กรุณาติดต่อผู้จัดการเพื่อสร้างบัญชีก่อนเข้าสู่ระบบ"
+                tone="warning"
+              />
+            ) : null}
+            {notice.message ? <Notice message={notice.message} tone={notice.tone} /> : null}
 
-              <label className="block">
-                <div className="mb-2 text-sm font-semibold text-slate-900">Username</div>
-                <input
-                  value={form.username}
-                  onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
-                  placeholder="กรอกชื่อผู้ใช้"
-                  autoComplete="username"
-                  required
-                />
-              </label>
+            <label className="block">
+              <div className="mb-2 text-sm font-semibold text-slate-900">Username</div>
+              <input
+                value={form.username}
+                onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
+                placeholder="กรอกชื่อผู้ใช้"
+                autoComplete="username"
+                required
+              />
+            </label>
 
-              <label className="block">
-                <div className="mb-2 text-sm font-semibold text-slate-900">Password</div>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                  placeholder="กรอกรหัสผ่าน"
-                  autoComplete="current-password"
-                  required
-                />
-              </label>
+            <label className="block">
+              <div className="mb-2 text-sm font-semibold text-slate-900">Password</div>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                placeholder="กรอกรหัสผ่าน"
+                autoComplete="current-password"
+                required
+              />
+            </label>
 
-              <button type="submit" className="w-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700">
-                เข้าสู่ระบบ
-              </button>
-            </form>
-          )}
+            <button type="submit" className="w-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700">
+              เข้าสู่ระบบ
+            </button>
+          </form>
 
           {hasUsers ? (
             <div className="mt-6 border border-slate-200 bg-slate-50 px-4 py-4">
